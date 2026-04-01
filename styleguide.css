@@ -1,0 +1,62 @@
+
+:root {
+  /* =========================================================
+     Color Tokens
+     ========================================================= */
+
+  --color-white: #ffffff;
+  --color-light-grey: #f3f3f3;
+  --color-black: #000000;
+
+  /* =========================================================
+     Typography — Font Families
+     ========================================================= */
+
+--font-display: "RL Porteron", serif;
+--font-mono-light: "Aeonik Mono", monospace;
+--font-mono-bold: "Aeonik Mono", monospace;
+
+  /* =========================================================
+   Typography — Fluid Scale (Responsive)
+   ========================================================= */
+
+--text-hero: clamp(2rem, 5vw, 3rem);
+/* min: 32px → max: 48px */
+
+--text-section-title: clamp(1.5rem, 3vw, 2rem);
+/* min: 24px → max: 32px */
+
+--text-body-lg: clamp(1.125rem, 2.2vw, 1.5rem);
+/* min: 18px → max: 24px */
+
+--text-body: clamp(0.95rem, 2vw, 1rem);
+/* min: ~15px → max: 16px */
+
+--text-nav: clamp(0.875rem, 1.5vw, 1rem);
+/* min: 14px → max: 16px */
+
+
+  /* =========================================================
+     Spacing Scale
+     ========================================================= */
+
+  --space-xs: 8px;
+  --space-sm: 16px;
+  --space-md: 24px;
+  --space-lg: 48px;
+  --space-xl: 96px;
+  --space-xxl: 144px;
+
+  /* =========================================================
+     Layout Widths
+     ========================================================= */
+
+  --content-max-width: 1200px;
+  --page-max-width: 1440px;
+
+  /* =========================================================
+     Border Radius
+     ========================================================= */
+
+  --radius-pill: 99px;
+}

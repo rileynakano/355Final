@@ -1,0 +1,184 @@
+/* =========================================================
+   Page Layout
+   ========================================================= */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-white);
+  position: relative;
+}
+
+.story {
+  width: 100%;
+}
+
+/* =========================================================
+   Navigation
+   ========================================================= */
+
+.site-nav {
+  position: absolute;
+  top: 65px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-light-grey);
+  border-radius: var(--radius-pill);
+  padding: var(--space-sm) var(--space-lg);
+  z-index: 100;
+}
+
+.nav-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 100px; /* intentional fixed spacing for now */
+}
+
+.nav-link {
+  font-family: var(--font-mono-light);
+  font-weight: 300;
+  font-size: var(--text-nav);
+  line-height: var(--line-tight);
+  color: var(--color-black);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-link.is-active {
+  font-family: var(--font-mono-bold);
+  font-weight: 700;
+}
+
+/* =========================================================
+   Story Sections (Shared)
+   ========================================================= */
+
+.story-section {
+  width: 100%;
+  min-height: 1024px;
+  background-color: var(--color-white);
+  position: relative;
+}
+
+.section-header {
+  width: min(100%, var(--content-max-width));
+  margin: 0 auto;
+  padding-inline: var(--space-md);
+  padding-top: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  text-align: center;
+}
+
+.section-eyebrow {
+  font-family: var(--font-mono-light);
+  font-weight: 300;
+  font-size: var(--text-body);
+  line-height: var(--line-normal);
+  color: var(--color-black);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-section-title);
+  line-height: var(--line-tight);
+  color: var(--color-black);
+}
+
+.section-subtitle {
+  font-family: var(--font-mono-light);
+  font-weight: 300;
+  font-size: var(--text-body);
+  line-height: var(--line-normal);
+  color: var(--color-black);
+  max-width: 900px;
+}
+
+/* =========================================================
+   Hero Section
+   ========================================================= */
+
+.section-hero {
+  min-height: 1024px;
+  padding-top: 120px;
+}
+
+.hero-layout {
+  width: min(100%, var(--content-max-width));
+  margin: 0 auto;
+  padding-inline: var(--space-md);
+  padding-top: calc(50vh - 170px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.hero-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  text-align: center;
+}
+
+.hero-eyebrow {
+  font-family: var(--font-mono-light);
+  font-weight: 300;
+  font-size: var(--text-body-lg);
+  line-height: var(--line-normal);
+  color: var(--color-black);
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-hero);
+  line-height: var(--line-hero);
+  color: var(--color-black);
+}
+
+/* =========================================================
+   Hero Visuals
+   ========================================================= */
+
+
+.hero-visuals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-lg);
+}
+
+.hero-visuals img {
+  height: 100px;
+  display: block;
+}
+
+.hero-visuals img:nth-child(1) {
+  width: 91px;
+}
+
+.hero-visuals img:nth-child(2) {
+  width: 129px;
+}
+
+.hero-visuals img:nth-child(3) {
+  width: 105px;
+}
+
+/* =========================================================
+   Section Hooks (Empty by Design)
+   ========================================================= */
+
+.section-intro {}
+.section-ordering {}
+.section-timing {}
+.section-ratings {}
+.section-sentiment {}
+.section-drivers {}
+.section-geography {}
+.section-summary {}
