@@ -182,3 +182,14 @@
 .section-drivers {}
 .section-geography {}
 .section-summary {}
+
+/*visualizations*/
+#vis1,#vis2a,#vis2b,
+#view3,#view4,#view5,
+#view6 {
+  width: 100%;
+  height: 100%;
+  max-width: 50rem;
+  padding-bottom: 4rem;
+
+}
