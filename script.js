@@ -110,22 +110,61 @@ vl.markBar()
 //PART 4
 const vis4_feeling =
 vl.markBar()
-  .data(google_trends)   // your dataset
+  .data(google_trends)
   .transform([
+    // Convert sentiment to number if needed
     {
-      fold: ["vader_pos", "vader_neg", "vader_neu"],
-      as: ["sentiment", "score"]
+      calculate: "toNumber(datum.sentiment)",
+      as: "sentimentNum"
+    },
+
+    // Map numeric sentiment to text labels
+    {
+      calculate: "datum.sentimentNum === 1 ? 'Positive' : datum.sentimentNum === 0 ? 'Neutral' : 'Negative'",
+      as: "sentimentLabel"
+    },
+
+    // Count how many rows fall into each sentiment level per app
+    {
+      aggregate: [
+        { op: 'count', as: 'sentimentCount' }
+      ],
+      groupby: ['Apps', 'sentimentLabel']
     }
   ])
   .encode(
+    // One group per app
     vl.x().fieldN("Apps").title("Delivery App"),
-    vl.y().fieldQ("score").title("Sentiment Score"),
-    vl.color().fieldN("sentiment").title("Sentiment"),
-    // vl.encode(vl.column().fieldN("sentiment")),
+
+    // Three bars inside each group
+    vl.xOffset().fieldN("sentimentLabel"),
+
+    // Height = number of occurrences
+    vl.y().fieldQ("sentimentCount").title("Count"),
+
+    // Color by sentiment label
+    vl.color()
+      .fieldN("sentimentLabel")
+      .title("Sentiment")
+      .scale({
+        domain: ["Negative", "Neutral", "Positive"],
+        range: ["#d62728", "#aaaaaa", "#2ca02c"] // red, gray, green
+      }),
+
+    // Tooltip
+    vl.tooltip([
+      { field: "Apps", title: "App" },
+      { field: "sentimentLabel", title: "Sentiment" },
+      { field: "sentimentCount", title: "Count" }
+    ])
   )
-  .width(400)
+  .width(500)
   .height(300)
   .toSpec();
+
+
+
+
 
 //PART 5
 const vis5_totalorders =
