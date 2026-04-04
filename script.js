@@ -2,7 +2,7 @@
 async function fetchData() {
   const [cleaned_full_data,doordash_data,google_trends,time_series_worldwide]
   = await Promise.all ([d3.csv("./datasets/cleaned_full_data.csv"),
-d3.csv("./datasets/doordash_data.csv"),d3.csv("./datasets/google_trends.csv")
+d3.csv("./datasets/doordash_data.csv"),d3.csv("datasets/google_trends.csv")
 ,d3.csv("./datasets/time_series_Worldwide_20131231-1600_20260401-2321.csv")]);
   return {cleaned_full_data,doordash_data,google_trends,time_series_worldwide};
   }
