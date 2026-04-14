@@ -9,11 +9,14 @@
     <link rel="stylesheet" href="styleguide.css" />
     <link rel="stylesheet" href="style.css" />
     
-    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-lite-api@5.6.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-tooltip@0.28.0/build/vega-tooltip.min.js"></script>
+
+
 
     <script >
 
@@ -107,7 +110,7 @@
 
           <div class="section-content">
             <!-- Visualization goes here -->
-             <div id="vis1"></div>
+             <div id="vis_1"></div>
           </div>
         </section>
 
@@ -119,8 +122,8 @@
               Orders by day of week and time of day.
             </p>
           </header>
-            <div id="vis2a"></div>
-            <div id="vis2b"></div>
+            <div id="vis_2a"></div>
+            <div id="vis_2b"></div>
         </section>
 
         <!-- Ratings -->
@@ -131,7 +134,7 @@
               Star rating distribution across DoorDash, Grubhub, and Uber Eats.
             </p>
           </header>
-          <div id="vis3"></div>
+          <div id="vis_3"></div>
         </section>
 
         <!-- Sentiment -->
@@ -142,7 +145,7 @@
               Comparison of positive, neutral, and negative sentiment across platforms.
             </p>
           </header>
-          <div id="vis4"></div>
+          <div id="vis_4"></div>
         </section>
 
         <!-- Most Ordered Food -->
@@ -153,7 +156,7 @@
               The most ordered types of food and the average amount spend on each type.
             </p>
           </header>
-          <div id="vis5"></div>
+          <div id="vis_5"></div>
         </section>
 
         <!-- Geography -->
@@ -164,7 +167,7 @@
               The top 3 most popular cuisines across different cities in Canada.
             </p>
           </header>
-          <div id="vis6"></div>
+          <div id="vis_6"></div>
         </section>
 
         <!-- Summary -->
@@ -177,6 +180,6 @@
 
       </main>
     </div>
-    <script type="module" src="script.js"></script>
+    <script type="module" src="script copy.js"></script>
   </body>
 </html>
