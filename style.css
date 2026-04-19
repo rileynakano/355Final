@@ -64,7 +64,7 @@
   width: min(100%, var(--content-max-width));
   margin: 0 auto;
   padding-inline: var(--space-md);
-  padding-top: 260px;
+  padding-top: 50px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -96,6 +96,19 @@
   color: var(--color-black);
   max-width: 900px;
 }
+
+.section-container{
+  border: 2px solid #ddd;        /* the bounding box */
+  border-radius: 12px;           /* rounded corners */
+  padding: 24px;                 /* space inside the box */
+  margin: 40px auto;                /* space outside the box */
+  background: #fafafa;           /* optional subtle background */
+
+  max-width: 1000px;
+  width: 100%;
+
+}
+
 
 /* =========================================================
    Hero Section
@@ -189,11 +202,10 @@
 #vis_6 {
   width: 100%;
   height: 100%;
-  padding-bottom: 4rem;
+  padding: 2rem;
   display: grid;
   place-items: center;
   margin-left: auto;
   margin-right: auto;
-
 }
 

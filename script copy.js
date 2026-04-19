@@ -65,8 +65,8 @@ function timeSeriesChart(time_series_worldwide, selector) {
 
   const data = time_series_worldwide;
 
-  const width = 800;
-  const height = 400;
+  const width = 1000;
+  const height = 500;
   const margin = {top: 20, right: 30, bottom: 30, left: 50};
 
   // Parse time
@@ -132,6 +132,24 @@ function timeSeriesChart(time_series_worldwide, selector) {
   const yAxisG = svg.append("g")
     .attr("transform", `translate(${margin.left},0)`)
     .call(d3.axisLeft(y));
+
+  // X‑axis title
+  svg.append("text")
+    .attr("class", "axis-title axis-title-x")
+    .attr("x", width / 2)
+    .attr("y", height - 5)
+    .attr("text-anchor", "middle")
+    .text("Year");
+
+  // Y‑axis title
+  svg.append("text")
+    .attr("class", "axis-title axis-title-y")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", 15)
+    .attr("text-anchor", "middle")
+    .text("Search Interest");
+
 
   // Clip path
   svg.append("defs").append("clipPath")
@@ -259,8 +277,8 @@ function dayOfWeekChart(doordash_data, selector) {
 
   const data = doordash_data;
 
-  const width = 500;
-  const height = 300;
+  const width = 800;
+  const height = 500;
   const margin = {top: 20, right: 20, bottom: 40, left: 50};
 
   // Weekday names
@@ -338,6 +356,19 @@ function dayOfWeekChart(doordash_data, selector) {
     .attr("transform", `translate(${margin.left},0)`)
     .call(d3.axisLeft(y));
 
+  svg.append("text")
+    .attr("class", "axis-title axis-title-x")
+    .attr("x", width / 2)
+    .attr("y", height - 5)
+    .text("Day of Week");
+
+  svg.append("text")
+    .attr("class", "axis-title axis-title-y")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", 15)
+    .text("Number of Orders");
+
   // Bars
   svg.append("g")
     .selectAll("rect")
@@ -382,7 +413,7 @@ function timeOfDayChart(doordash_data, selector) {
   const data = doordash_data;
 
   // ⭐ New proportional sizing
-  const width = 800;
+  const width = 1000;
   const height = Math.round(width * 0.4375); // ≈ 219px
 
   const margin = {top: 20, right: 30, bottom: 40, left: 50};
@@ -451,6 +482,19 @@ const svg = container.append("svg")
     .attr("transform", `translate(${margin.left},0)`)
     .call(d3.axisLeft(y));
 
+  svg.append("text")
+  .attr("class", "axis-title axis-title-x")
+  .attr("x", width / 2)
+  .attr("y", height - 5)
+  .text("Hour of Day");
+
+  svg.append("text")
+    .attr("class", "axis-title axis-title-y")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", 15)
+    .text("Number of Orders");
+
   // Line generator
   const line = d3.line()
     .x(d => x(d.hour))
@@ -518,8 +562,8 @@ function scatterSelection(cleaned_full_data, selector) {
 
   const data = cleaned_full_data;
 
-  const width = 928;
-  const height = 600;
+  const width = 1000;
+  const height = 645;
   const marginTop = 20;
   const marginRight = 30;
   const marginBottom = 30;
@@ -575,13 +619,14 @@ function scatterSelection(cleaned_full_data, selector) {
     .attr("transform", `translate(${marginLeft},0)`)
     .call(d3.axisLeft(y));
 
+// X‑axis title
   gx.append("text")
-    .attr("x", width - marginRight)
-    .attr("y", -4)
+    .attr("x", width - 1)
+    .attr("y", 28)
     .attr("fill", "#000")
     .attr("font-weight", "bold")
     .attr("text-anchor", "end")
-    .text("Distance");
+    .text("Distance (Kilometers)");
 
   gy.select(".tick:last-of-type text").clone()
     .attr("x", 4)
@@ -716,8 +761,8 @@ function sentimentChart(google_trends, selector) {
 
   const data = google_trends;
 
-  const width = 500;
-  const height = 300;
+  const width = 1000;
+  const height = 600;
   const margin = {top: 20, right: 20, bottom: 50, left: 60};
 
   // Convert sentiment to numeric + label
@@ -807,6 +852,20 @@ function sentimentChart(google_trends, selector) {
     .attr("transform", `translate(${margin.left},0)`)
     .call(d3.axisLeft(y));
 
+  svg.append("text")
+    .attr("class", "axis-title axis-title-x")
+    .attr("x", width / 2)
+    .attr("y", height - 5)
+    .text("Platform");
+
+  svg.append("text")
+    .attr("class", "axis-title axis-title-y")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", 8)
+    .text("Sentiment Score");
+
+
   // Bars
   svg.append("g")
     .selectAll("g")
@@ -857,8 +916,8 @@ function totalOrdersChart(doordash_data, selector) {
 
   const data = doordash_data;
 
-  const width = 1200;
-  const height = 400;
+  const width = 1000;
+  const height = 350;
   const margin = {top: 20, right: 20, bottom: 60, left: 70};
 
   // Compute shifted subtotal
@@ -949,6 +1008,19 @@ function totalOrdersChart(doordash_data, selector) {
     .attr("transform", `translate(${margin.left},0)`)
     .call(d3.axisLeft(y));
 
+  svg.append("text")
+  .attr("class", "axis-title axis-title-x")
+  .attr("x", width / 2)
+  .attr("y", height - 5)
+  .text("Food Category");
+
+  svg.append("text")
+    .attr("class", "axis-title axis-title-y")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", 15)
+    .text("Total Orders");
+
   // Clip path
   svg.append("defs").append("clipPath")
     .attr("id", "clip-bars5")
@@ -1032,7 +1104,7 @@ function totalOrdersChart(doordash_data, selector) {
 
 function stackedCityChart(cleaned_full_data, selector) {
 
-  const width = 720;
+  const width = 800;
   const height = 350;
   const margin = {top: 20, right: 20, bottom: 60, left: 70};
 
@@ -1175,6 +1247,20 @@ function stackedCityChart(cleaned_full_data, selector) {
   const yAxisG = svg.append("g")
     .attr("transform", `translate(${margin.left},0)`)
     .call(d3.axisLeft(y));
+
+  svg.append("text")
+    .attr("class", "axis-title axis-title-x")
+    .attr("x", width / 2)
+    .attr("y", height - 5)
+    .text("City");
+
+  svg.append("text")
+    .attr("class", "axis-title axis-title-y")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", 15)
+    .text("Number of Restaurants");
+
 
   // --- CLIP PATH ---
   svg.append("defs").append("clipPath")
