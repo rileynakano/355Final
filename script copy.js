@@ -38,7 +38,6 @@ async function initDashboard() {
     // 3. Call each chart function
     // -------------------------------
     timeSeriesChart(time_series_worldwide, "#vis_1");
-    dayOfWeekChart(doordash_data, "#vis_2a");
     timeOfDayChart(doordash_data, "#vis_2b");
     scatterSelection(cleaned_full_data, "#vis_3");
     sentimentChart(google_trends, "#vis_4");
@@ -133,8 +132,8 @@ function timeSeriesChart(time_series_worldwide, selector) {
   const submitBtn = document.createElement("button");
   submitBtn.textContent = "Submit Prediction";
   submitBtn.style.padding = "10px 20px";
-  submitBtn.style.backgroundColor = "#FF6B35";
-  submitBtn.style.color = "white";
+  submitBtn.style.backgroundColor = "#CCCCCC";
+  submitBtn.style.color = "#999999";
   submitBtn.style.border = "none";
   submitBtn.style.borderRadius = "4px";
   submitBtn.style.cursor = "pointer";
@@ -142,7 +141,7 @@ function timeSeriesChart(time_series_worldwide, selector) {
   submitBtn.style.fontWeight = "bold";
   submitBtn.style.transition = "all 0.3s ease";
   submitBtn.disabled = true;
-  submitBtn.style.opacity = "0.5";
+  submitBtn.style.opacity = "1";
 
   submitBtn.addEventListener("mouseover", function() {
     if (!this.disabled) {
@@ -421,6 +420,8 @@ function timeSeriesChart(time_series_worldwide, selector) {
           vegaEmbed(chartContainer, predictionSpecWithMarker, { actions: false });
 
           submitBtn.disabled = false;
+          submitBtn.style.backgroundColor = "#FF6B35";
+          submitBtn.style.color = "white";
           submitBtn.style.opacity = "1";
           submitBtn.style.cursor = "pointer";
 
@@ -660,145 +661,286 @@ function dayOfWeekChart(doordash_data, selector) {
 
 function timeOfDayChart(doordash_data, selector) {
   const data = doordash_data;
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const weekdayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const hours = Array.from({ length: 24 }, (_, i) => i);
 
-  // ⭐ New proportional sizing
-  const width = 1000;
-  const height = Math.round(width * 0.4375); // ≈ 219px
+  const timeRanges = [
+    { key: "morning", label: "Morning", subtitle: "6am–12pm", hours: [6, 7, 8, 9, 10, 11], message: "You're a morning orderer — mornings are a popular time for people to grab delivery before the workday gets busy." },
+    { key: "afternoon", label: "Afternoon", subtitle: "12pm–5pm", hours: [12, 13, 14, 15, 16], message: "You're an afternoon orderer — afternoons are a steady window of delivery activity as people refuel between meetings and errands." },
+    { key: "evening", label: "Evening", subtitle: "5pm–9pm", hours: [17, 18, 19, 20], message: "You're an evening orderer — evenings are the busiest time of the week across the dataset." },
+    { key: "latenight", label: "Late Night", subtitle: "9pm–2am", hours: [21, 22, 23, 0, 1], message: "You're a late-night orderer — late nights are a niche but strong period for delivery cravings." }
+  ];
 
-  const margin = {top: 20, right: 30, bottom: 40, left: 50};
+  const wrapper = document.createElement("div");
+  wrapper.style.width = "100%";
+  wrapper.style.maxWidth = "980px";
+  wrapper.style.margin = "0 auto";
+  wrapper.style.padding = "0 12px";
+  wrapper.style.boxSizing = "border-box";
 
-  // Extract hour
-  const processed = data.map(d => {
-    const date = new Date(d.created_at);
-    return { hour: date.getHours() };
+  const instructionPanel = document.createElement("div");
+  instructionPanel.style.marginBottom = "20px";
+  instructionPanel.style.padding = "15px";
+  instructionPanel.style.backgroundColor = "#FFF8E1";
+  instructionPanel.style.borderLeft = "4px solid #FF6B35";
+  instructionPanel.style.borderRadius = "4px";
+
+  const introText = document.createElement("p");
+  introText.textContent = "Pick the time of day when you usually place food delivery orders, then submit to reveal the most popular times.";
+  introText.style.margin = "0";
+  introText.style.fontSize = "14px";
+  introText.style.color = "#333";
+
+  instructionPanel.appendChild(introText);
+
+  const actionContainer = document.createElement("div");
+  actionContainer.style.display = "flex";
+  actionContainer.style.alignItems = "center";
+  actionContainer.style.gap = "20px";
+  actionContainer.style.marginTop = "14px";
+
+  const submitButton = document.createElement("button");
+  submitButton.type = "button";
+  submitButton.textContent = "Submit";
+  submitButton.disabled = true;
+  submitButton.style.padding = "10px 20px";
+  submitButton.style.backgroundColor = "#CCCCCC";
+  submitButton.style.color = "#999999";
+  submitButton.style.border = "none";
+  submitButton.style.borderRadius = "4px";
+  submitButton.style.cursor = "not-allowed";
+  submitButton.style.fontSize = "14px";
+  submitButton.style.fontWeight = "bold";
+  submitButton.style.transition = "all 0.3s ease";
+  submitButton.style.marginBottom = "0";
+  submitButton.style.opacity = "1";
+
+  actionContainer.appendChild(submitButton);
+  instructionPanel.appendChild(actionContainer);
+  wrapper.appendChild(instructionPanel);
+
+  const buttonGrid = document.createElement("div");
+  buttonGrid.style.display = "grid";
+  buttonGrid.style.gridTemplateColumns = "repeat(auto-fit, minmax(190px, 1fr))";
+  buttonGrid.style.gap = "14px";
+  buttonGrid.style.marginBottom = "14px";
+
+  const buttons = [];
+  let selectedOption = null;
+
+  submitButton.addEventListener("mouseover", () => {
+    if (!submitButton.disabled) {
+      submitButton.style.backgroundColor = "#E55100";
+      submitButton.style.transform = "scale(1.05)";
+    }
+  });
+  submitButton.addEventListener("mouseout", () => {
+    if (!submitButton.disabled) {
+      submitButton.style.backgroundColor = "#FF6B35";
+      submitButton.style.transform = "scale(1)";
+    }
   });
 
-  // Count orders per hour
-  const counts = d3.rollups(
-    processed,
-    v => v.length,
-    d => d.hour
-  );
+  function updateButtonStyle(button, isActive) {
+    if (isActive) {
+      button.style.backgroundColor = "#FFE0B2";
+      button.style.color = "#BF360C";
+      button.style.boxShadow = "0 16px 28px rgba(255, 138, 101, 0.24)";
+    } else {
+      button.style.backgroundColor = "#FFF3E0";
+      button.style.color = "#4E342E";
+      button.style.boxShadow = "0 8px 20px rgba(255, 152, 0, 0.12)";
+    }
+  }
 
-  const rows = counts.map(([hour, count]) => ({ hour: +hour, count }));
-  rows.sort((a, b) => a.hour - b.hour);
+  timeRanges.forEach((range, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.style.display = "flex";
+    button.style.flexDirection = "column";
+    button.style.alignItems = "flex-start";
+    button.style.justifyContent = "center";
+    button.style.padding = "18px 16px";
+    button.style.border = "none";
+    button.style.borderRadius = "18px";
+    button.style.cursor = "pointer";
+    button.style.minHeight = "90px";
+    button.style.fontSize = "16px";
+    button.style.fontWeight = "700";
+    button.style.lineHeight = "1.2";
+    button.style.textAlign = "left";
+    button.style.transition = "all 0.2s ease";
+    button.innerHTML = `${range.label}<span style="font-size: 13px; font-weight: 500; color: #5D4037; margin-top: 8px; display: block;">${range.subtitle}</span>`;
 
-  // Container
-  const container = d3.create("div")
-    .style("position", "relative");
+    updateButtonStyle(button, false);
 
-  // Tooltip
-  const tooltip = container.append("div")
-    .style("position", "absolute")
-    .style("padding", "14px 18px")
-    .style("background", "white")
-    .style("border", "1px solid #ccc")
-    .style("border-radius", "6px")
-    .style("pointer-events", "none")
-    .style("font-size", "15px")
-    .style("width", "22vw")
-    .style("max-width", "320px")
-    .style("box-shadow", "0 4px 12px rgba(0,0,0,0.15)")
-    .style("opacity", 0);
-
-  // SVG
-const svg = container.append("svg")
-  .attr("width", width)          // ⭐ NEW
-  .attr("height", height)        // ⭐ NEW
-  .attr("viewBox", [0, 0, width, height])
-  .style("font", "10px sans-serif");
-
-
-  // Scales
-  const x = d3.scaleLinear()
-    .domain([0, 23])
-    .range([margin.left, width - margin.right]);
-
-  const y = d3.scaleLinear()
-    .domain([0, d3.max(rows, d => d.count)]).nice()
-    .range([height - margin.bottom, margin.top]);
-
-  // Axes
-  svg.append("g")
-    .attr("transform", `translate(0,${height - margin.bottom})`)
-    .call(
-      d3.axisBottom(x)
-        .ticks(24)
-        .tickFormat(d => `${d}:00`)
-    );
-
-  svg.append("g")
-    .attr("transform", `translate(${margin.left},0)`)
-    .call(d3.axisLeft(y));
-
-  svg.append("text")
-  .attr("class", "axis-title axis-title-x")
-  .attr("x", width / 2)
-  .attr("y", height - 5)
-  .text("Hour of Day");
-
-  svg.append("text")
-    .attr("class", "axis-title axis-title-y")
-    .attr("transform", "rotate(-90)")
-    .attr("x", -height / 2)
-    .attr("y", 15)
-    .text("Number of Orders");
-
-  // Line generator
-  const line = d3.line()
-    .x(d => x(d.hour))
-    .y(d => y(d.count));
-
-  // Draw line
-  svg.append("path")
-    .datum(rows)
-    .attr("fill", "none")
-    .attr("stroke", "#1f77b4")
-    .attr("stroke-width", 2)
-    .attr("d", line);
-
-  // Precompute points
-  const points = rows.map(d => ({
-    x: x(d.hour),
-    y: y(d.count),
-    d
-  }));
-
-  // Hover dot
-  const hoverDot = svg.append("circle")
-    .attr("r", 5)
-    .attr("fill", "red")
-    .style("display", "none");
-
-  // Hover behavior
-  svg
-    .on("pointermove", event => {
-      const [xm, ym] = d3.pointer(event);
-
-      const nearest = d3.least(points, p => Math.hypot(p.x - xm, p.y - ym));
-      if (!nearest) return;
-
-      hoverDot
-        .style("display", null)
-        .attr("cx", nearest.x)
-        .attr("cy", nearest.y);
-
-      tooltip
-        .style("opacity", 1)
-        .style("left", nearest.x + 12 + "px")
-        .style("top", nearest.y - 28 + "px")
-        .html(`
-          <strong>Hour:</strong> ${nearest.d.hour}:00<br>
-          <strong>Orders:</strong> ${nearest.d.count}
-        `);
-    })
-    .on("pointerleave", () => {
-      hoverDot.style("display", "none");
-      tooltip.style("opacity", 0);
+    button.addEventListener("click", () => {
+      selectedOption = range;
+      buttons.forEach((otherButton, otherIndex) => {
+        updateButtonStyle(otherButton, otherIndex === index);
+      });
+      submitButton.disabled = false;
+      submitButton.style.backgroundColor = "#FF6B35";
+      submitButton.style.color = "white";
+      submitButton.style.opacity = "1";
+      submitButton.style.cursor = "pointer";
     });
 
-  // Append to page
-  document.querySelector(selector).appendChild(container.node());
+    buttons.push(button);
+    buttonGrid.appendChild(button);
+  });
+
+  wrapper.appendChild(buttonGrid);
+
+  const chartContainer = document.createElement("div");
+  chartContainer.style.width = "100%";
+  chartContainer.style.minHeight = "620px";
+  chartContainer.style.marginTop = "28px";
+  chartContainer.style.padding = "18px";
+  chartContainer.style.borderRadius = "18px";
+  chartContainer.style.overflow = "visible";
+  chartContainer.style.backgroundColor = "#ffffff";
+  chartContainer.style.boxShadow = "0 18px 45px rgba(0,0,0,0.08)";
+
+  const messageContainer = document.createElement("p");
+  messageContainer.style.marginTop = "18px";
+  messageContainer.style.color = "#4E342E";
+  messageContainer.style.fontSize = "15px";
+  messageContainer.style.lineHeight = "1.6";
+  messageContainer.style.display = "none";
+
+  wrapper.appendChild(chartContainer);
+  wrapper.appendChild(messageContainer);
+
+  const container = document.querySelector(selector);
+  container.innerHTML = "";
+  container.appendChild(wrapper);
+
+  const rawCounts = {};
+  data.forEach(row => {
+    const date = new Date(row.created_at);
+    if (Number.isNaN(date.getTime())) return;
+    const day = dayNames[date.getDay()];
+    const hour = date.getHours();
+    const key = `${day}-${hour}`;
+    rawCounts[key] = (rawCounts[key] || 0) + 1;
+  });
+
+  const heatmapData = [];
+  weekdayOrder.forEach(day => {
+    hours.forEach(hour => {
+      heatmapData.push({
+        day,
+        hour,
+        count: rawCounts[`${day}-${hour}`] || 0
+      });
+    });
+  });
+
+  const maxCount = d3.max(heatmapData, d => d.count) || 1;
+
+  function renderHeatmap() {
+    if (!selectedOption) return;
+
+    const selectedHours = selectedOption.hours;
+    const spec = {
+      $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+      width: "container",
+      height: 660,
+      autosize: { type: "fit", contains: "padding" },
+      data: { values: heatmapData },
+      layer: [
+        {
+          mark: {
+            type: "rect"
+          },
+          encoding: {
+            x: {
+              field: "day",
+              type: "ordinal",
+              sort: weekdayOrder,
+              axis: {
+                title: "Day of Week",
+                labelAngle: 0,
+                labelFontSize: 12,
+                titleFontSize: 14,
+                titleFontWeight: "700"
+              }
+            },
+            y: {
+              field: "hour",
+              type: "ordinal",
+              sort: hours,
+              axis: {
+                title: "Hour of Day",
+                labelAngle: 0,
+                labelFontSize: 12,
+                titleFontSize: 14,
+                titleFontWeight: "700",
+                labelExpr: "datum.value + ':00'"
+              }
+            },
+            color: {
+              field: "count",
+              type: "quantitative",
+              scale: {
+                domain: [0, maxCount],
+                range: ["#fff3e0", "#ffb74d", "#fb8c00", "#d84315", "#b71c1c"]
+              },
+              legend: {
+                title: "DoorDash orders by day of the week and time of day",
+                titleFontSize: 13,
+                labelFontSize: 12,
+                orient: "bottom",
+                direction: "horizontal",
+                titleLimit: 600,
+                labelLimit: 600
+              }
+            },
+            tooltip: [
+              { field: "day", type: "ordinal", title: "Day" },
+              { field: "hour", type: "ordinal", title: "Hour", labelExpr: "datum.value + ':00'" },
+              { field: "count", type: "quantitative", title: "Orders" }
+            ]
+          }
+        },
+        {
+          mark: {
+            type: "rect",
+            fillOpacity: 0,
+            stroke: "#000000",
+            strokeWidth: 3,
+            cornerRadius: 4
+          },
+          transform: [
+            { filter: { field: "hour", oneOf: selectedHours } }
+          ],
+          encoding: {
+            x: {
+              field: "day",
+              type: "ordinal",
+              sort: weekdayOrder
+            },
+            y: {
+              field: "hour",
+              type: "ordinal",
+              sort: hours
+            }
+          }
+        }
+      ]
+    };
+
+    vegaEmbed(chartContainer, spec, { actions: false }).then(() => {
+      messageContainer.style.display = "block";
+      messageContainer.innerHTML = `<strong style="color: #FF6B35;">${selectedOption.label}</strong><br>${selectedOption.message}`;
+    }).catch(error => {
+      chartContainer.innerHTML = `<p style="color: #D32F2F; padding: 18px;">Unable to load heatmap: ${error.message}</p>`;
+    });
+  }
+
+  submitButton.addEventListener("click", renderHeatmap);
 }
 
 
