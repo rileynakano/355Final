@@ -225,11 +225,43 @@
 
 /* Vega-Lite charts */
 #vis_1 canvas,
-#vis_1 svg {
+#vis_1 svg,
+#vis_5 canvas,
+#vis_5 svg {
   max-width: 100%;
   height: auto;
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+#vis_5 .bubble-chart-wrapper {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+#vis_5 .bubble-chart-instructions {
+  background: linear-gradient(135deg, #FFF8E1 0%, #FFF9E6 100%);
+  border-left: 4px solid #FF6B35;
+  padding: 18px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+#vis_5 .bubble-chart-actions button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(255, 107, 53, 0.3);
+}
+
+#vis_1 button:not(:disabled):hover,
+#vis_5 button:not(:disabled):hover {
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.5);
+}
+
+#vis_1 button:disabled,
+#vis_5 button:disabled {
+  background-color: #CCCCCC !important;
+  cursor: not-allowed;
 }
 
 /* Submit button styling */

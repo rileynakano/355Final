@@ -1304,192 +1304,267 @@ function sentimentChart(google_trends, selector) {
 
 function totalOrdersChart(doordash_data, selector) {
 
+  const categories = [
+    "American",
+    "Pizza",
+    "Mexican",
+    "Burger",
+    "Sandwich",
+    "Chinese",
+    "Japanese",
+    "Dessert",
+    "Fast Food",
+    "Indian"
+  ];
 
-  const data = doordash_data;
+  // ---------- FIX CATEGORY MATCHING ----------
+  const normalize = d =>
+    d.toLowerCase().replace(/\s+/g, " ").trim();
 
-  const width = 1000;
-  const height = 350;
-  const margin = {top: 20, right: 20, bottom: 60, left: 70};
-
-  // Compute shifted subtotal
-  const processed = data
-    .map(d => ({
-      store_primary_category: d.store_primary_category,
-      subtotalShifted: Math.round((d.subtotal / 100) * 100) / 100
-    }))
-    .filter(d => d.subtotalShifted > 0);
-
-  // Group by category
-  const grouped = d3.rollups(
-    processed,
-    v => ({
-      count: v.length,
-      avgSubtotal: d3.mean(v, d => d.subtotalShifted)
-    }),
-    d => d.store_primary_category
+  const counts = d3.rollups(
+    doordash_data.filter(d => d.store_primary_category),
+    v => v.length,
+    d => normalize(d.store_primary_category)
   );
 
-  // Convert to array
-  const rows = grouped.map(([category, stats]) => ({
-    category,
-    count: stats.count,
-    avgSubtotal: stats.avgSubtotal
+  const countMap = new Map(counts);
+  
+  const chartData = categories.map(category => {
+    const key =
+      category === "Fast Food"
+        ? "fast"
+        : normalize(category);
+
+    return {
+      category,
+      count: countMap.get(key) ?? 0
+    };
+  });
+
+  const shuffledIndices = d3.shuffle(d3.range(chartData.length));
+
+  const rankedData = [...chartData].sort((a, b) => b.count - a.count);
+  const categoryRank = new Map(rankedData.map((d, i) => [d.category, i]));
+
+  // ---------- LAYOUT ----------
+  const width = 1000;
+  const height = 600;
+
+  const startRadius = 44;
+
+  const radiusScale = d3.scaleSqrt()
+    .domain([0, d3.max(chartData, d => d.count)])
+    .range([30, 70]);
+
+  const colorScale = d3.scaleLinear()
+    .domain([0, d3.max(chartData, d => d.count)])
+    .range(["#FFB556", "#B71C1C"]);
+
+  // Two-row guess layout
+  const cols = Math.ceil(chartData.length / 2);
+  const colSpacing = (width - 160) / cols;
+  const rowY = [height * 0.35, height * 0.65];
+
+  const initialPositions = shuffledIndices.map((_, i) => ({
+    x: 80 + (i % cols) * colSpacing,
+    y: rowY[Math.floor(i / cols)]
   }));
 
-  // Sort by count descending
-  rows.sort((a, b) => b.count - a.count);
+  // ---------- CONTAINER ----------
+  const wrapper = d3.create("div")
+    .style("margin", "0")
+    .style("padding", "0");
 
-  const categories = rows.map(d => d.category);
+  const actionRow = wrapper.append("div")
+    .style("margin-bottom", "20px")
+    .style("padding", "15px")
+    .style("background-color", "#FFF8E1")
+    .style("border-left", "4px solid #FF6B35")
+    .style("border-radius", "4px")
+    .style("display", "flex")
+    .style("align-items", "center")
+    .style("gap", "18px");
 
-  // Container
-  const container = d3.create("div")
-    .style("position", "relative");
+  const counterText = actionRow.append("div")
+    .style("font-size", "14px")
+    .style("font-weight", "600")
+    .text("0 of 5 selected");
 
-  // Tooltip
-  const tooltip = container.append("div")
-    .style("position", "absolute")
-    .style("padding", "14px 18px")
-    .style("background", "white")
-    .style("border", "1px solid #ccc")
-    .style("border-radius", "6px")
-    .style("pointer-events", "none")
-    .style("font-size", "15px")
-    .style("width", "22vw")
-    .style("max-width", "320px")
-    .style("box-shadow", "0 4px 12px rgba(0,0,0,0.15)")
-    .style("opacity", 0);
+  const submitButton = actionRow.append("button")
+    .attr("disabled", true)
+    .style("padding", "10px 20px")
+    .style("border-radius", "4px")
+    .style("border", "none")
+    .style("font-weight", "bold")
+    .style("font-size", "14px")
+    .style("cursor", "not-allowed")
+    .style("background", "#CCCCCC")
+    .style("color", "#999999")
+    .style("transition", "all 0.3s ease")
+    .style("opacity", "1")
+    .text("Submit Prediction");
 
-  // SVG
-  const svg = container.append("svg")
+  const svg = wrapper.append("svg")
     .attr("width", width)
-    .attr("height", height)
-    .style("font", "10px sans-serif");
+    .attr("height", height);
 
-  // Base linear scale for zooming
-  const xLinear = d3.scaleLinear()
-    .domain([0, categories.length])
-    .range([margin.left, width - margin.right]);
+  // ---------- STATE ----------
+  const state = {
+    selected: [],
+    selectedSet: new Set(),
+    submitted: false
+  };
 
-  // Band scale (derived from linear)
-  const x = d3.scaleBand()
-    .domain(categories)
-    .range([margin.left, width - margin.right])
-    .padding(0.2);
+  const bubbles = svg.append("g");
 
-  const y = d3.scaleLinear()
-    .domain([0, d3.max(rows, d => d.count)]).nice()
-    .range([height - margin.bottom, margin.top]);
+  const bubbleGroups = bubbles.selectAll("g.bubble")
+    .data(chartData)
+    .join("g")
+    .attr("class", "bubble")
+    
+    .attr("transform", (d, i) => {
+      const shuffledIndex = shuffledIndices.indexOf(i);
+      return `translate(
+        ${initialPositions[shuffledIndex].x},
+        ${initialPositions[shuffledIndex].y}
+      )`;
+    })
 
-  const color = d3.scaleSequential()
-    .domain([0, d3.max(rows, d => d.avgSubtotal)])
-    .interpolator(d3.interpolateBlues);
+    .style("cursor", "pointer")
+    .on("click", (_, d) => {
+      if (state.submitted) return;
 
-  // Axes
-  const xAxisG = svg.append("g")
-    .attr("transform", `translate(0,${height - margin.bottom})`)
-    .call(
-      d3.axisBottom(x)
-        .tickFormat(d => d.length > 12 ? d.slice(0, 12) + "…" : d)
-    )
-    .selectAll("text")
-      .attr("transform", "rotate(-35)")
-      .style("text-anchor", "end");
+      const isSelected = state.selectedSet.has(d.category);
 
-  const yAxisG = svg.append("g")
-    .attr("transform", `translate(${margin.left},0)`)
-    .call(d3.axisLeft(y));
+      if (isSelected) {
+        state.selectedSet.delete(d.category);
+        state.selected = state.selected.filter(c => c !== d.category);
+      } else if (state.selected.length < 5) {
+        state.selected.push(d.category);
+        state.selectedSet.add(d.category);
+      }
 
-  svg.append("text")
-  .attr("class", "axis-title axis-title-x")
-  .attr("x", width / 2)
-  .attr("y", height - 5)
-  .text("Food Category");
-
-  svg.append("text")
-    .attr("class", "axis-title axis-title-y")
-    .attr("transform", "rotate(-90)")
-    .attr("x", -height / 2)
-    .attr("y", 15)
-    .text("Total Orders");
-
-  // Clip path
-  svg.append("defs").append("clipPath")
-    .attr("id", "clip-bars5")
-    .append("rect")
-      .attr("x", margin.left)
-      .attr("y", margin.top)
-      .attr("width", width - margin.left - margin.right)
-      .attr("height", height - margin.top - margin.bottom);
-
-  const barLayer = svg.append("g")
-    .attr("clip-path", "url(#clip-bars5)");
-
-  // Bars
-  const bars = barLayer.selectAll("rect")
-    .data(rows)
-    .join("rect")
-      .attr("x", d => x(d.category))
-      .attr("y", d => y(d.count))
-      .attr("width", x.bandwidth())
-      .attr("height", d => y(0) - y(d.count))
-      .attr("fill", d => color(d.avgSubtotal))
-      .on("pointerenter", function(event, d) {
-        d3.select(this).attr("fill", "#1f77b4");
-        tooltip
-          .style("opacity", 1)
-          .html(`
-            <strong>Category:</strong> ${d.category}<br>
-            <strong>Times Ordered:</strong> ${d.count}<br>
-            <strong>Avg Subtotal:</strong> $${d.avgSubtotal.toFixed(2)}
-          `);
-      })
-      .on("pointermove", function(event) {
-        const [xm, ym] = d3.pointer(event, container.node());
-        tooltip
-          .style("left", xm + 12 + "px")
-          .style("top", ym - 28 + "px");
-      })
-      .on("pointerleave", function(event, d) {
-        d3.select(this).attr("fill", color(d.avgSubtotal));
-        tooltip.style("opacity", 0);
-      });
-
-  // ⭐ FIXED ZOOM + PAN
-  const zoom = d3.zoom()
-    .scaleExtent([1, 8])
-    .translateExtent([[margin.left, 0], [width - margin.right, 0]])
-    .extent([[margin.left, 0], [width - margin.right, 0]])
-    .on("zoom", event => {
-      const zx = event.transform.rescaleX(xLinear);
-
-      // Update band scale range
-      x.range([zx(0), zx(categories.length)]);
-
-      // Update bars
-      bars
-        .attr("x", d => x(d.category))
-        .attr("width", x.bandwidth());
-
-      // Update x-axis
-      xAxisG
-        .call(
-          d3.axisBottom(x)
-            .tickFormat(d => d.length > 12 ? d.slice(0, 12) + "…" : d)
-        )
-        .selectAll("text")
-          .attr("transform", "rotate(-35)")
-          .style("text-anchor", "end");
+      updateSelectionUI();
     });
 
-  svg.call(zoom);
+  // ---------- INITIAL GREY CIRCLES ----------
+  bubbleGroups.append("circle")
+    .attr("r", startRadius)
+    .attr("fill", "#E0E0E0")
+    .attr("stroke", "#BDBDBD")
+    .attr("stroke-width", 1.6);
 
-  // ⭐ Append to HTML
-  document.querySelector(selector).appendChild(container.node());
+  // ---------- CATEGORY LABEL ----------
+  bubbleGroups.append("text")
+    .attr("text-anchor", "middle")
+    .attr("dy", "0.35em")
+    .style("font-size", "12px")
+    .style("font-weight", "700")
+    .style("fill", "#3E2723")
+    .style("pointer-events", "none")
+    .text(d => d.category);
 
+  // ---------- SELECTION BADGES ----------
+  const badges = bubbleGroups.append("g")
+    .attr("transform", `translate(${startRadius - 6},${-startRadius + 6})`)
+    .style("display", "none");
+
+  badges.append("circle")
+    .attr("r", 14)
+    .attr("fill", "#FF6B35")
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 3);
+
+  const badgeText = badges.append("text")
+    .attr("text-anchor", "middle")
+    .attr("dy", "0.35em")
+    .style("fill", "#fff")
+    .style("font-size", "12px")
+    .style("font-weight", "800");
+
+  // ---------- UI UPDATES ----------
+  function updateSelectionUI() {
+    counterText.text(`${state.selected.length} of 5 selected`);
+
+    badges
+      .style("display", d =>
+        state.selectedSet.has(d.category) ? "block" : "none"
+      )
+      .select("text")
+      .text(d => state.selected.indexOf(d.category) + 1);
+
+    bubbleGroups.select("circle")
+      .attr("stroke", d =>
+        state.selectedSet.has(d.category) ? "#FF6B35" : "#BDBDBD"
+      )
+      .attr("stroke-width", d =>
+        state.selectedSet.has(d.category) ? 3.5 : 1.6
+      );
+
+    submitButton
+      .attr("disabled", state.selected.length !== 5 ? true : null)
+      .style("cursor", state.selected.length === 5 ? "pointer" : "not-allowed")
+      .style("background", state.selected.length === 5 ? "#FF6B35" : "#CCCCCC")
+      .style("color", state.selected.length === 5 ? "#ffffff" : "#999999");
+  }
+
+  // ---------- SUBMIT / REVEAL ----------
+  submitButton.on("click", () => {
+    if (state.submitted) return;
+    state.submitted = true;
+
+    submitButton.text("Revealing…").attr("disabled", true);
+
+    
+    const perRow = Math.ceil(chartData.length / 2);
+    const xSpacing = (width - 160) / perRow;
+
+    const finalRowY = [
+      height * 0.4,
+      height * 0.65
+    ];
+
+    bubbleGroups.transition()
+      .duration(1200)
+      .attr("transform", d => {
+        const rank = categoryRank.get(d.category);
+        const row = Math.floor(rank / perRow);
+        const col = rank % perRow;
+
+        return `translate(
+          ${80 + col * xSpacing},
+          ${finalRowY[row]}
+        )`;
+      });
+        
+    bubbleGroups.select("circle")
+      .transition()
+      .duration(1200)
+      .attr("r", d => Math.max(startRadius, radiusScale(d.count)))
+      .attr("fill", d => colorScale(d.count))
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 2);
+
+    bubbleGroups.select("text")
+      .transition()
+      .duration(600)
+      .style("fill", "#ffffff");
+
+    bubbleGroups.append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", "1.6em")
+      .style("font-size", "11px")
+      .style("font-weight", "600")
+      .style("fill", "#ffffff")
+      .style("pointer-events", "none")
+      .text(d => d.count.toLocaleString());
+  });
+
+  // ---------- APPEND ----------
+  const target = document.querySelector(selector);
+  target.innerHTML = "";
+  target.appendChild(wrapper.node());
 }
-
-
-
 
 
 
