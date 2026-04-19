@@ -209,3 +209,67 @@
   margin-right: auto;
 }
 
+/* =========================================================
+   Interactive Time Series Styling
+   ========================================================= */
+
+#vis_1 > div {
+  width: 100%;
+}
+
+/* Instruction panel */
+#vis_1 > div > div:first-child {
+  background: linear-gradient(135deg, #FFF8E1 0%, #FFF9E6 100%);
+  border-left: 4px solid #FF6B35;
+}
+
+/* Vega-Lite charts */
+#vis_1 canvas,
+#vis_1 svg {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Submit button styling */
+#vis_1 button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(255, 107, 53, 0.3);
+}
+
+#vis_1 button:not(:disabled):hover {
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.5);
+}
+
+#vis_1 button:disabled {
+  background-color: #CCCCCC !important;
+  cursor: not-allowed;
+}
+
+/* Feedback panels */
+#vis_1 > div > div:last-child {
+  animation: slideInUp 0.6s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Food delivery color palette */
+:root {
+  --color-primary-orange: #FF6B35;
+  --color-primary-red: #D32F2F;
+  --color-secondary-orange: #E55100;
+  --color-success-green: #4CAF50;
+  --color-info-blue: #2196F3;
+  --color-warning-orange: #FF9800;
+}
+

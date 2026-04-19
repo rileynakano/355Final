@@ -62,210 +62,459 @@ initDashboard();
 
 
 function timeSeriesChart(time_series_worldwide, selector) {
-
   const data = time_series_worldwide;
+  
+  // Parse dates and fold data for "Food delivery" track
+  const processedData = data.map(d => ({
+    Time: new Date(d.Time),
+    TimeStr: new Date(d.Time).toISOString().slice(0, 10),
+    Value: parseFloat(d["Food delivery"])
+  }));
 
-  const width = 1000;
-  const height = 500;
-  const margin = {top: 20, right: 30, bottom: 30, left: 50};
+  // Parse Uber Eats data for the actual peak
+  const uberData = data.map(d => ({
+    Time: new Date(d.Time),
+    TimeStr: new Date(d.Time).toISOString().slice(0, 10),
+    Value: parseFloat(d["Uber Eats"])
+  }));
 
-  // Parse time
-  data.forEach(d => d.Time = new Date(d.Time));
+  const uberPeakIndex = uberData.reduce((maxIdx, d, idx) => 
+    d.Value > uberData[maxIdx].Value ? idx : maxIdx, 0);
+  const uberPeak = uberData[uberPeakIndex];
 
-  // Fold the columns
-  const apps = ["Food delivery", "Uber Eats", "DoorDash", "Grubhub"];
-  const folded = [];
+  const allKeywords = ["Food delivery", "Uber Eats", "DoorDash", "Grubhub"];
 
+  const keywordPeakInfo = allKeywords.map(keyword => {
+    const keywordRows = data.map(d => ({
+      Time: new Date(d.Time),
+      TimeStr: new Date(d.Time).toISOString().slice(0, 10),
+      Value: parseFloat(d[keyword])
+    }));
+
+    const peakIndex = keywordRows.reduce((maxIdx, row, idx) =>
+      row.Value > keywordRows[maxIdx].Value ? idx : maxIdx, 0);
+
+    return {
+      keyword,
+      ...keywordRows[peakIndex]
+    };
+  });
+
+  const container = document.querySelector(selector);
+  container.innerHTML = "";
+
+  // Create wrapper div
+  const wrapper = document.createElement("div");
+  wrapper.style.position = "relative";
+
+  // Create instruction panel
+  const instructionPanel = document.createElement("div");
+  instructionPanel.style.marginBottom = "20px";
+  instructionPanel.style.padding = "15px";
+  instructionPanel.style.backgroundColor = "#FFF8E1";
+  instructionPanel.style.borderLeft = "4px solid #FF6B35";
+  instructionPanel.style.borderRadius = "4px";
+
+  const instruction = document.createElement("p");
+  instruction.textContent = "Click anywhere on the graph to predict the peak of all Food Delivery search interest.";
+  instruction.style.margin = "0 0 15px 0";
+  instruction.style.fontSize = "14px";
+  instruction.style.color = "#333";
+
+  instructionPanel.appendChild(instruction);
+
+  // Create container for button and selection feedback
+  const actionContainer = document.createElement("div");
+  actionContainer.style.display = "flex";
+  actionContainer.style.alignItems = "center";
+  actionContainer.style.gap = "20px";
+
+  // Create button inside action container
+  const submitBtn = document.createElement("button");
+  submitBtn.textContent = "Submit Prediction";
+  submitBtn.style.padding = "10px 20px";
+  submitBtn.style.backgroundColor = "#FF6B35";
+  submitBtn.style.color = "white";
+  submitBtn.style.border = "none";
+  submitBtn.style.borderRadius = "4px";
+  submitBtn.style.cursor = "pointer";
+  submitBtn.style.fontSize = "14px";
+  submitBtn.style.fontWeight = "bold";
+  submitBtn.style.transition = "all 0.3s ease";
+  submitBtn.disabled = true;
+  submitBtn.style.opacity = "0.5";
+
+  submitBtn.addEventListener("mouseover", function() {
+    if (!this.disabled) {
+      this.style.backgroundColor = "#E55100";
+      this.style.transform = "scale(1.05)";
+    }
+  });
+
+  submitBtn.addEventListener("mouseout", function() {
+    if (!this.disabled) {
+      this.style.backgroundColor = "#FF6B35";
+      this.style.transform = "scale(1)";
+    }
+  });
+
+  actionContainer.appendChild(submitBtn);
+
+  // Create selection feedback element (initially hidden)
+  const selectionFeedback = document.createElement("span");
+  selectionFeedback.style.fontSize = "13px";
+  selectionFeedback.style.color = "#000";
+  selectionFeedback.style.fontWeight = "bold";
+  selectionFeedback.style.display = "none";
+  selectionFeedback.style.alignItems = "center";
+  selectionFeedback.style.display = "inline-flex";
+  selectionFeedback.style.gap = "8px";
+  actionContainer.appendChild(selectionFeedback);
+
+  instructionPanel.appendChild(actionContainer);
+  wrapper.appendChild(instructionPanel);
+
+  // State
+  let userMarker = null;
+  let formSubmitted = false;
+  const chartData = processedData.map(d => ({ 
+    TimeStr: d.TimeStr, 
+    Value: d.Value
+  }));
+
+  // Prepare data for final chart with all four keywords
+  const chartDataAllKeywords = [];
+  
   data.forEach(row => {
-    apps.forEach(app => {
-      folded.push({
-        Time: row.Time,
-        App: app,
-        Value: +row[app]
+    allKeywords.forEach(keyword => {
+      chartDataAllKeywords.push({
+        TimeStr: new Date(row.Time).toISOString().slice(0, 10),
+        Keyword: keyword,
+        Value: parseFloat(row[keyword])
       });
     });
   });
 
-  // Group by App
-  const groups = d3.group(folded, d => d.App);
+  // Blank chart spec - empty axes only, no data visible
+  const blankSpec = {
+    $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+    width: 900,
+    height: 450,
+    padding: { left: 50, right: 30, top: 20, bottom: 50 },
+    data: { values: chartData },
+    mark: "point",
+    encoding: {
+      x: { field: "TimeStr", type: "temporal", axis: { title: "Year" } },
+      y: { field: "Value", type: "quantitative", scale: { domain: [0, 100] }, axis: { title: "Search Interest" } }
+    },
+    layer: [
+      {
+        mark: { type: "point", size: 0, opacity: 0 },
+        encoding: {
+          x: { field: "TimeStr", type: "temporal" },
+          y: { field: "Value", type: "quantitative" }
+        }
+      }
+    ]
+  };
 
-  // Container
-  const container = d3.create("div")
-    .style("position", "relative");
+  // Chart with user's prediction highlighted
+  const predictionSpec = {
+    $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+    width: 900,
+    height: 450,
+    padding: { left: 50, right: 30, top: 20, bottom: 50 },
+    data: { values: chartData },
+    layer: [
+      {
+        mark: { type: "line", color: "#CCCCCC", size: 2, opacity: 0.4 },
+        encoding: {
+          x: { field: "TimeStr", type: "temporal", axis: { title: "Year" } },
+          y: { field: "Value", type: "quantitative", scale: { domain: [0, 100] }, axis: { title: "Search Interest" } }
+        }
+      },
+      {
+        mark: { type: "point", size: 150, color: "#CCCCCC", opacity: 0.5, cursor: "pointer" },
+        encoding: {
+          x: { field: "TimeStr", type: "temporal" },
+          y: { field: "Value", type: "quantitative" },
+          tooltip: [
+            { field: "TimeStr", type: "temporal", title: "Date" },
+            { field: "Value", type: "quantitative", title: "Search Interest" }
+          ]
+        }
+      },
+      {
+        mark: { type: "point", size: 250, color: "#FF6B35", opacity: 1 },
+        transform: [
+          { filter: { field: "TimeStr", equal: "" } }
+        ],
+        encoding: {
+          x: { field: "TimeStr", type: "temporal" },
+          y: { field: "Value", type: "quantitative" }
+        }
+      }
+    ]
+  };
 
-  // Tooltip
-  const tooltip = container.append("div")
-    .style("position", "absolute")
-    .style("padding", "6px 10px")
-    .style("background", "white")
-    .style("border", "1px solid #ccc")
-    .style("border-radius", "4px")
-    .style("pointer-events", "none")
-    .style("font-size", "12px")
-    .style("opacity", 0);
+  // Final chart spec with revealed data and peak annotation
+  const finalSpec = {
+    $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+    width: 900,
+    height: 450,
+    padding: { left: 50, right: 30, top: 20, bottom: 50 },
+    data: { values: chartDataAllKeywords },
+    layer: [
+      {
+        mark: { type: "line", size: 2, point: true },
+        encoding: {
+          x: { field: "TimeStr", type: "temporal", axis: { title: "Year" } },
+          y: { field: "Value", type: "quantitative", scale: { domain: [0, 100] }, axis: { title: "Search Interest" } },
+          color: { 
+            field: "Keyword", 
+            type: "nominal",
+            scale: {
+              domain: allKeywords,
+              range: ["#A096BB", "#6A9767", "#E9AB7F", "#88B9CF"]
+            },
+            legend: {
+              title: "Platform",
+              orient: "bottom",
+              direction: "horizontal",
+              columns: 4,
+              padding: 10
+            }
+          }
+        }
+      },
+      {
+        mark: { type: "point", size: 200, opacity: 1 },
+        transform: [
+          { filter: { field: "TimeStr", equal: uberPeak.TimeStr } },
+          { filter: { field: "Keyword", equal: "Uber Eats" } }
+        ],
+        encoding: {
+          x: { field: "TimeStr", type: "temporal" },
+          y: { field: "Value", type: "quantitative" },
+          color: { value: "#6A9767" }
+        }
+      },
+      {
+        mark: { type: "text", align: "center", baseline: "bottom", dy: -18, fontSize: 13, fontWeight: "bold", fill: "#6A9767" },
+        transform: [
+          { filter: { field: "TimeStr", equal: uberPeak.TimeStr } },
+          { filter: { field: "Keyword", equal: "Uber Eats" } }
+        ],
+        encoding: {
+          x: { field: "TimeStr", type: "temporal" },
+          y: { field: "Value", type: "quantitative" },
+          text: { value: `Uber Eats Peak: ${uberPeak.Value} (${uberPeak.Time.toLocaleDateString("en-US", { month: "short", year: "numeric" })})` }
+        }
+      }
+    ]
+  };
 
-  // SVG
-  const svg = container.append("svg")
-    .attr("width", width)
-    .attr("height", height)
-    .style("font", "10px sans-serif");
+  // Create chart container
+  const chartContainer = document.createElement("div");
+  chartContainer.style.marginBottom = "20px";
+  wrapper.appendChild(chartContainer);
 
-  // Scales
-  const x = d3.scaleUtc()
-    .domain(d3.extent(folded, d => d.Time))
-    .range([margin.left, width - margin.right]);
+  // Container for results (below chart)
+  const resultsContainer = document.createElement("div");
+  resultsContainer.style.marginTop = "20px";
+  resultsContainer.style.paddingTop = "20px";
+  resultsContainer.style.paddingBottom = "20px";
+  wrapper.appendChild(resultsContainer);
 
-  const y = d3.scaleLinear()
-    .domain([0, d3.max(folded, d => d.Value)]).nice()
-    .range([height - margin.bottom, margin.top]);
+  // Render blank chart first
+  vegaEmbed(chartContainer, blankSpec, { actions: false }).then(result => {
+    const vegaView = result.view;
 
-  // Color scale
-  const color = d3.scaleOrdinal()
-    .domain(apps)
-    .range(d3.schemeTableau10);
+    // Add click handler directly to the SVG/canvas element
+    const chartElement = chartContainer.querySelector("canvas") || chartContainer.querySelector("svg");
+    
+    if (chartElement) {
+      chartElement.addEventListener("click", (event) => {
+        if (formSubmitted) return;
 
-  // Axes
-  const xAxisG = svg.append("g")
-    .attr("transform", `translate(0,${height - margin.bottom})`)
-    .call(d3.axisBottom(x).ticks(width / 80).tickFormat(d3.utcFormat("%Y")));
+        const rect = chartElement.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const clickY = event.clientY - rect.top;
 
-  const yAxisG = svg.append("g")
-    .attr("transform", `translate(${margin.left},0)`)
-    .call(d3.axisLeft(y));
+        const xScale = vegaView.scale("x");
+        const yScale = vegaView.scale("y");
+        const padding = { left: 50, right: 30, top: 20, bottom: 50 };
+        const chartHeight = 450 - padding.top - padding.bottom;
+        const clickYInner = clickY - padding.top;
 
-  // X‑axis title
-  svg.append("text")
-    .attr("class", "axis-title axis-title-x")
-    .attr("x", width / 2)
-    .attr("y", height - 5)
-    .attr("text-anchor", "middle")
-    .text("Year");
+        let clickedValue;
+        if (yScale && typeof yScale.invert === "function") {
+          clickedValue = yScale.invert(clickYInner);
+        }
 
-  // Y‑axis title
-  svg.append("text")
-    .attr("class", "axis-title axis-title-y")
-    .attr("transform", "rotate(-90)")
-    .attr("x", -height / 2)
-    .attr("y", 15)
-    .attr("text-anchor", "middle")
-    .text("Search Interest");
+        const predictedValue = Math.round(Math.max(0, Math.min(100, (clickedValue != null ? clickedValue : (1 - clickYInner / chartHeight) * 100))));
 
+        let minDist = Infinity;
+        let closestPoint = null;
 
-  // Clip path
-  svg.append("defs").append("clipPath")
-    .attr("id", "clip-lines")
-    .append("rect")
-      .attr("x", margin.left)
-      .attr("y", margin.top)
-      .attr("width", width - margin.left - margin.right)
-      .attr("height", height - margin.top - margin.bottom);
+        if (xScale && typeof xScale === "function") {
+          processedData.forEach(point => {
+            const pointX = xScale(point.Time);
+            if (typeof pointX !== "number" || Number.isNaN(pointX)) return;
+            const dist = Math.abs(pointX - clickX);
+            if (dist < minDist) {
+              minDist = dist;
+              closestPoint = point;
+            }
+          });
+        }
 
-  // Line generator
-  const line = d3.line()
-    .x(d => x(d.Time))
-    .y(d => y(d.Value));
+        if (!closestPoint) {
+          const chartWidth = 900 - padding.left - padding.right;
+          const clickXInner = clickX - padding.left;
+          const xNorm = clickXInner / chartWidth;
 
-  // Lines
-  const lineLayer = svg.append("g")
-    .attr("clip-path", "url(#clip-lines)");
+          processedData.forEach((point, idx) => {
+            const pointXNorm = idx / (processedData.length - 1);
+            const dist = Math.abs(pointXNorm - xNorm);
+            if (dist < minDist) {
+              minDist = dist;
+              closestPoint = point;
+            }
+          });
+        }
 
-  const paths = lineLayer.selectAll("path")
-    .data(groups)
-    .join("path")
-      .attr("fill", "none")
-      .attr("stroke", ([app]) => color(app))
-      .attr("stroke-width", 1.5)
-      .attr("d", ([app, values]) => line(values));
+        if (closestPoint) {
+          userMarker = {
+            Time: closestPoint.Time,
+            TimeStr: closestPoint.TimeStr,
+            Value: predictedValue
+          };
+          
+          // Create prediction spec with user's marker visible
+          const predictionSpecWithMarker = {
+            $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+            width: 900,
+            height: 450,
+            padding: { left: 50, right: 30, top: 20, bottom: 50 },
+            data: { values: chartData },
+            layer: [
+              {
+                mark: { type: "point", size: 0, opacity: 0 },
+                encoding: {
+                  x: { field: "TimeStr", type: "temporal", axis: { title: "Year" } },
+                  y: { field: "Value", type: "quantitative", scale: { domain: [0, 100] }, axis: { title: "Search Interest" } }
+                }
+              },
+              {
+                data: { values: [{ TimeStr: closestPoint.TimeStr, Value: predictedValue }] },
+                mark: { type: "image", width: 40, height: 40, aspect: true },
+                encoding: {
+                  x: { field: "TimeStr", type: "temporal" },
+                  y: { field: "Value", type: "quantitative" },
+                  url: { value: "assets/images/scooter.png" }
+                }
+              }
+            ]
+          };
 
-  // Precompute pixel positions
-  const points = folded.map(d => ({
-    x: x(d.Time),
-    y: y(d.Value),
-    d
-  }));
+          vegaEmbed(chartContainer, predictionSpecWithMarker, { actions: false });
 
-  // Hover dot
-  const hoverDot = svg.append("circle")
-    .attr("r", 5)
-    .attr("fill", "red")
-    .style("display", "none");
+          submitBtn.disabled = false;
+          submitBtn.style.opacity = "1";
+          submitBtn.style.cursor = "pointer";
 
-  // Hover behavior
-  svg
-    .on("pointermove", event => {
-      const [xm, ym] = d3.pointer(event);
-
-      const nearest = d3.least(points, p => Math.hypot(p.x - xm, p.y - ym));
-      if (!nearest) return;
-
-      hoverDot
-        .style("display", null)
-        .attr("cx", nearest.x)
-        .attr("cy", nearest.y);
-
-      paths
-        .attr("stroke", ([app]) =>
-          app === nearest.d.App ? "red" : color(app)
-        )
-        .filter(([app]) => app === nearest.d.App)
-        .raise();
-
-      tooltip
-        .style("opacity", 1)
-        .style("left", nearest.x + 12 + "px")
-        .style("top", nearest.y - 28 + "px")
-        .html(`
-          <strong>${nearest.d.App}</strong><br>
-          Time: ${nearest.d.Time.toISOString().slice(0,10)}<br>
-          Value: ${nearest.d.Value}
-        `);
-    })
-    .on("pointerleave", () => {
-      hoverDot.style("display", "none");
-      tooltip.style("opacity", 0);
-      paths.attr("stroke", ([app]) => color(app));
-    });
-
-  // Zoom + pan
-  const zoom = d3.zoom()
-    .scaleExtent([1, 20])
-    .translateExtent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
-    .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
-    .on("zoom", event => {
-      const zx = event.transform.rescaleX(x);
-      const zy = event.transform.rescaleY(y);
-
-      // Update pixel positions
-      points.forEach(p => {
-        p.x = zx(p.d.Time);
-        p.y = zy(p.d.Value);
+          // Visual feedback - show selected point
+          selectionFeedback.innerHTML = `<img src="assets/images/scooter.png" alt="Selected" style="width: 18px; height: 18px;"> Selected: ${closestPoint.Time.toLocaleDateString("en-US", { month: "short", year: "numeric" })} (Score: ${predictedValue})`;
+          selectionFeedback.style.display = "inline-flex";
+        }
       });
+    }
 
-      // Update lines
-      paths.attr("d", ([app, values]) =>
-        d3.line()
-          .x(d => zx(d.Time))
-          .y(d => zy(d.Value))(values)
-      );
+    // Submit button handler
+    submitBtn.addEventListener("click", async () => {
+      if (!userMarker) return;
 
-      // Smart axis formatting
-      const domain = zx.domain();
-      const span = domain[1] - domain[0];
-      const threeYears = 1000 * 60 * 60 * 24 * 365 * 4.5;
+      formSubmitted = true;
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = "0.6";
+      submitBtn.textContent = "Revealing actual data...";
 
-      const xAxis =
-        span < threeYears
-          ? d3.axisBottom(zx).ticks(8).tickFormat(d3.timeFormat("%b %Y"))
-          : d3.axisBottom(zx).ticks(width / 80).tickFormat(d3.utcFormat("%Y"));
+      // Brief animation pause
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      xAxisG.call(xAxis);
-      yAxisG.call(d3.axisLeft(zy));
+      // Embed final chart with data, peak annotation, and the selected marker image
+      const finalSpecWithMarker = {
+        ...finalSpec,
+        layer: [
+          ...finalSpec.layer,
+          {
+            data: { values: [userMarker] },
+            mark: { type: "image", width: 40, height: 40, aspect: true },
+            encoding: {
+              x: { field: "TimeStr", type: "temporal" },
+              y: { field: "Value", type: "quantitative" },
+              url: { value: "assets/images/scooter.png" }
+            }
+          }
+        ]
+      };
+
+      vegaEmbed(chartContainer, finalSpecWithMarker, { actions: false });
+
+      // Show results as plain text
+      resultsContainer.innerHTML = "";
+
+      const userDate = userMarker.Time.toLocaleDateString("en-US", { year: "numeric", month: "long" });
+      const peakDate = uberPeak.Time.toLocaleDateString("en-US", { year: "numeric", month: "long" });
+      const timeDiff = Math.abs(userMarker.Time - uberPeak.Time) / (1000 * 60 * 60 * 24 * 30); // months
+
+      const closestPeak = keywordPeakInfo.reduce((best, current) => {
+        const currentTimeDiff = Math.abs(userMarker.Time - current.Time) / (1000 * 60 * 60 * 24 * 30);
+        const currentValueDiff = Math.abs(userMarker.Value - current.Value) / 100;
+        const distance = currentTimeDiff + currentValueDiff;
+        return (!best || distance < best.distance) ? { ...current, distance } : best;
+      }, null);
+
+      const resultText = document.createElement("p");
+      resultText.style.fontSize = "14px";
+      resultText.style.lineHeight = "1.6";
+      resultText.style.color = "#333";
+
+      if (userMarker.Value === uberPeak.Value && timeDiff < 1) {
+        resultText.innerHTML = `<strong style="color: #2E7D32; font-size: 16px;">🎉 Perfect!</strong> You predicted the exact Uber Eats peak! It occurred in <strong>${peakDate}</strong> with a search interest score of <strong>${uberPeak.Value}</strong>.`;
+      } else if (Math.abs(userMarker.Value - uberPeak.Value) <= 5 && timeDiff < 2) {
+        resultText.innerHTML = `<br>
+                            <strong>Your Prediction:</strong> ${userDate} (Score: ${userMarker.Value})<br>
+                            <strong>Uber Eats Peak:</strong> ${peakDate} (Score: ${uberPeak.Value})`;
+      } else {
+        resultText.innerHTML = `<strong style="color: #E65100; font-size: 16px;">Results</strong><br>
+                            <strong>Your Prediction:</strong> ${userDate} (Score: ${userMarker.Value})<br>
+                            <strong>Uber Eats Peak:</strong> ${peakDate} (Score: ${uberPeak.Value})`;
+      }
+
+      const peaksList = document.createElement("div");
+      peaksList.style.marginTop = "16px";
+      peaksList.style.fontSize = "14px";
+      peaksList.style.color = "#333";
+      peaksList.innerHTML = keywordPeakInfo.map(info => {
+        const peakMonth = info.Time.toLocaleDateString("en-US", { year: "numeric", month: "long" });
+        const isClosest = closestPeak && info.keyword === closestPeak.keyword;
+        return `<div style="margin-bottom: 8px;">
+                  <span style="font-weight: ${isClosest ? "800" : "600"}; color: ${isClosest ? "#000" : "#444"};">${info.keyword}</span>: ${peakMonth} (Score: ${info.Value})${isClosest ? " <strong>← closest match</strong>" : ""}
+                </div>`;
+      }).join("");
+
+      resultsContainer.appendChild(resultText);
+      resultsContainer.appendChild(peaksList);
+      submitBtn.style.display = "none";
     });
+  }).catch(err => {
+    console.error("Error embedding Vega-Lite chart:", err);
+    chartContainer.innerHTML = `<p style="color: red;">Error loading chart: ${err.message}</p>`;
+  });
 
-  svg.call(zoom);
-
-  // ⭐ Append chart to HTML element
-  document.querySelector(selector).appendChild(container.node());
+  container.appendChild(wrapper);
 }
 
 
