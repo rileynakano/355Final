@@ -39,7 +39,7 @@ async function initDashboard() {
 // -------------------------------
     timeSeriesChart(time_series_worldwide, "#vis_1");
     timeOfDayChart(doordash_data, "#vis_2b");
-    scatterSelection(cleaned_full_data, "#vis_3");
+    starRatingChart(cleaned_full_data, "#vis_3");
     sentimentChart(google_trends, "#vis_4");
     totalOrdersChart(doordash_data, "#vis_5");
     canadaMapChart(cleaned_full_data, "#vis_6");
@@ -946,198 +946,265 @@ function timeOfDayChart(doordash_data, selector) {
 
 
 
-function scatterSelection(cleaned_full_data, selector) {
+function starRatingChart(cleaned_full_data, selector) {
 
   const data = cleaned_full_data;
-
   const width = 1000;
-  const height = 645;
-  const marginTop = 20;
-  const marginRight = 30;
-  const marginBottom = 30;
-  const marginLeft = 40;
+  const height = 500;
+  const margin = { top: 20, right: 30, bottom: 40, left: 100 };
 
-  // Container
-  const container = d3.create("div")
-    .style("position", "relative");
+  
+  // ----------------------------------
+  // 1. Get top 10 categories for filter
+  // ----------------------------------
+  const categoryCounts = d3.rollups(
+    data.filter(d => d.category_1),
+    v => v.length,
+    d => d.category_1
+  );
 
-  // Tooltip
-  const tooltip = container.append("div")
-    .style("position", "absolute")
-    .style("padding", "6px 10px")
-    .style("background", "white")
-    .style("border", "1px solid #ccc")
-    .style("border-radius", "4px")
-    .style("pointer-events", "none")
-    .style("font-size", "12px")
-    .style("opacity", 0);
+  const topCategories = categoryCounts
+    .sort((a, b) => b[1] - a[1])   // sort by count desc
+    .slice(0, 18)                 // keep top 10
+    .map(d => d[0]);              // category name
 
-  // SVG
-  const svg = container.append("svg")
-    .attr("width", width)
-    .attr("height", height);
+  const allCategories = ["All", ...topCategories];
 
-  // Scales
-  const x = d3.scaleLinear()
-    .domain([0, d3.max(data, d => d.distance)]).nice()
-    .range([marginLeft, width - marginRight]);
+  // ----------------------------------
+  // 2. Helper to compute stacked data
+  // ----------------------------------
+  function computeData(filterCategory) {
+    const filtered = filterCategory === "All"
+      ? data
+      : data.filter(d => d.category_1 === filterCategory);
 
-  const y = d3.scaleLinear()
-    .domain([0, d3.max(data, d => d.num_reviews)]).nice()
-    .range([height - marginBottom, marginTop]);
+    const cities = [...new Set(filtered.map(d => d.city).filter(Boolean))];
 
-  // Clip path
-  svg.append("defs").append("clipPath")
-    .attr("id", "clip-selection")
-    .append("rect")
-      .attr("x", marginLeft)
-      .attr("y", marginTop)
-      .attr("width", width - marginLeft - marginRight)
-      .attr("height", height - marginTop - marginBottom);
-
-  const dotLayer = svg.append("g")
-    .attr("clip-path", "url(#clip-selection)");
-
-  // Axes
-  const gx = svg.append("g")
-    .attr("transform", `translate(0,${height - marginBottom})`)
-    .call(d3.axisBottom(x));
-
-  const gy = svg.append("g")
-    .attr("transform", `translate(${marginLeft},0)`)
-    .call(d3.axisLeft(y));
-
-// X‑axis title
-  gx.append("text")
-    .attr("x", width - 1)
-    .attr("y", 28)
-    .attr("fill", "#000")
-    .attr("font-weight", "bold")
-    .attr("text-anchor", "end")
-    .text("Distance (Kilometers)");
-
-  gy.select(".tick:last-of-type text").clone()
-    .attr("x", 4)
-    .attr("text-anchor", "start")
-    .attr("font-weight", "bold")
-    .text("Number of Reviews");
-
-  // Precompute pixel positions
-  const points = data.map(d => ({
-    x: x(d.distance),
-    y: y(d.num_reviews),
-    d
-  }));
-
-  // Draw dots
-  const dot = dotLayer.selectAll("circle")
-    .data(points)
-    .join("circle")
-      .attr("r", 3)
-      .attr("cx", p => p.x)
-      .attr("cy", p => p.y)
-      .attr("stroke", "steelblue")
-      .attr("fill", "white")
-      .attr("stroke-width", 1.5);
-
-  // Hover dot
-  const hoverDot = svg.append("g")
-    .attr("display", "none");
-
-  hoverDot.append("circle")
-    .attr("r", 5)
-    .attr("fill", "red");
-
-  // Pointer events
-  svg
-    .on("pointerenter", () => hoverDot.attr("display", null))
-    .on("pointermove", pointermoved)
-    .on("pointerleave", pointerleft);
-
-  function pointermoved(event) {
-    const [xm, ym] = d3.pointer(event);
-
-    const nearest = d3.least(points, p => Math.hypot(p.x - xm, p.y - ym));
-    if (!nearest) return;
-
-    hoverDot.attr("transform", `translate(${nearest.x},${nearest.y})`);
-
-    dot
-      .attr("stroke", p => p === nearest ? "red" : "#ccc")
-      .attr("fill", p => p === nearest ? "red" : "white");
-
-    tooltip
-      .style("opacity", 1)
-      .style("left", nearest.x + 12 + "px")
-      .style("top", nearest.y - 28 + "px")
-      .html(`
-        <strong>${nearest.d.restaurant}</strong><br>
-        Distance: ${nearest.d.distance}<br>
-        Reviews: ${nearest.d.num_reviews}
-      `);
+    return cities.map(city => {
+      const cityData = filtered.filter(d => d.city === city);
+      const total = cityData.length;
+      const counts = [1, 2, 3, 4, 5].map(star => ({
+        star,
+        count: cityData.filter(d => Math.round(d.star) === star).length,
+        pct: total > 0 ? cityData.filter(d => Math.round(d.star) === star).length / total : 0
+      }));
+      return { city, total, counts };
+    });
   }
 
-  function pointerleft() {
-    hoverDot.attr("display", "none");
-    dot.attr("stroke", "steelblue").attr("fill", "white");
-    tooltip.style("opacity", 0);
-  }
+  // ----------------------------------
+  // 3. Container
+  // ----------------------------------
+  const wrapper = document.createElement("div");
+  wrapper.style.width = "100%";
 
-  // Zoom
-  const zoom = d3.zoom()
-    .scaleExtent([1, 20])
-    .translateExtent([
-      [marginLeft, marginTop],
-      [width - marginRight, height - marginBottom]
-    ])
-    .extent([
-      [marginLeft, marginTop],
-      [width - marginRight, height - marginBottom]
-    ])
-    .on("zoom", zoomed);
+  // ----------------------------------
+  // 4. Instruction panel
+  // ----------------------------------
+  const instructionPanel = document.createElement("div");
+  instructionPanel.style.marginBottom = "20px";
+  instructionPanel.style.padding = "15px";
+  instructionPanel.style.backgroundColor = "#FFF8E1";
+  instructionPanel.style.borderLeft = "4px solid #FF6B35";
+  instructionPanel.style.borderRadius = "4px";
+  instructionPanel.innerHTML = `<p style="margin:0; font-size:14px; color:#333;">How well rated are the restaurants in your city? Filter by cuisine to explore.</p>`;
+  wrapper.appendChild(instructionPanel);
 
-  svg.call(zoom);
+  // ----------------------------------
+  // 5. Filter pills
+  // ----------------------------------
+  const pillRow = document.createElement("div");
+  pillRow.style.display = "flex";
+  pillRow.style.flexWrap = "wrap";
+  pillRow.style.gap = "8px";
+  pillRow.style.marginBottom = "20px";
 
-  function zoomed(event) {
-    const zx = event.transform.rescaleX(x);
-    const zy = event.transform.rescaleY(y);
+  let activeCategory = "All";
 
-    points.forEach(p => {
-      p.x = zx(p.d.distance);
-      p.y = zy(p.d.num_reviews);
+  allCategories.forEach(cat => {
+    const pill = document.createElement("button");
+    pill.textContent = cat;
+    pill.style.padding = "6px 16px";
+    pill.style.borderRadius = "999px";
+    pill.style.border = "none";
+    pill.style.cursor = "pointer";
+    pill.style.fontSize = "13px";
+    pill.style.fontWeight = "600";
+    pill.style.transition = "all 0.2s ease";
+    pill.style.backgroundColor = cat === "All" ? "#FF6B35" : "#F0F0F0";
+    pill.style.color = cat === "All" ? "#ffffff" : "#444444";
+
+    pill.addEventListener("click", () => {
+      activeCategory = cat;
+      pillRow.querySelectorAll("button").forEach(b => {
+        b.style.backgroundColor = "#F0F0F0";
+        b.style.color = "#444444";
+      });
+      pill.style.backgroundColor = "#FF6B35";
+      pill.style.color = "#ffffff";
+      updateChart(cat);
     });
 
-    dot
-      .attr("cx", p => p.x)
-      .attr("cy", p => p.y);
+    pillRow.appendChild(pill);
+  });
 
-    gx.call(d3.axisBottom(zx));
-    gy.call(d3.axisLeft(zy));
-  }
+  wrapper.appendChild(pillRow);
 
-  // Brush
-  const brush = d3.brush()
-    .on("start brush end", ({selection}) => {
+  // ----------------------------------
+  // 6. Chart container
+  // ----------------------------------
+  const chartDiv = document.createElement("div");
+  wrapper.appendChild(chartDiv);
 
-      if (!selection) {
-        dot.attr("stroke", "steelblue");
-        return;
-      }
+  // ----------------------------------
+  // 7. Tooltip
+  // ----------------------------------
+  const tooltip = document.createElement("div");
+  tooltip.style.position = "fixed";
+  tooltip.style.padding = "10px 14px";
+  tooltip.style.background = "white";
+  tooltip.style.border = "1px solid #ccc";
+  tooltip.style.borderRadius = "6px";
+  tooltip.style.pointerEvents = "none";
+  tooltip.style.fontSize = "13px";
+  tooltip.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+  tooltip.style.opacity = "0";
+  tooltip.style.transition = "opacity 0.2s ease";
+  document.body.appendChild(tooltip);
 
-      const [[x0, y0], [x1, y1]] = selection;
+  // ----------------------------------
+  // 8. Color scale (light orange → deep red)
+  // ----------------------------------
+  const colorScale = d3.scaleOrdinal()
+    .domain([1, 2, 3, 4, 5])
+    .range(["#FFE0B2", "#FFB74D", "#FF8C42", "#E64A19", "#B71C1C"]);
 
-      const selected = points.filter(p =>
-        x0 <= p.x && p.x < x1 &&
-        y0 <= p.y && p.y < y1
-      );
+  // ----------------------------------
+  // 9. Draw / update chart
+  // ----------------------------------
+  function updateChart(filterCategory) {
+    chartDiv.innerHTML = "";
 
-      dot.attr("stroke", p => selected.includes(p) ? "steelblue" : "#ccc");
+    const chartData = computeData(filterCategory);
+
+    const svg = d3.select(chartDiv)
+      .append("svg")
+      .attr("width", width)
+      .attr("height", margin.top + chartData.length * 50 + margin.bottom);
+
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = chartData.length * 50;
+
+    const g = svg.append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Y scale — cities
+    const y = d3.scaleBand()
+      .domain(chartData.map(d => d.city))
+      .range([0, innerHeight])
+      .padding(0.3);
+
+    // X scale — proportion 0 to 1
+    const x = d3.scaleLinear()
+      .domain([0, 1])
+      .range([0, innerWidth]);
+
+    // Y axis
+    g.append("g")
+      .call(d3.axisLeft(y))
+      .selectAll("text")
+      .style("font-size", "13px")
+      .style("font-weight", "600");
+
+    // X axis
+    g.append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(d3.axisBottom(x).tickFormat(d3.format(".0%")))
+      .selectAll("text")
+      .style("font-size", "12px");
+
+    // X axis label
+    g.append("text")
+      .attr("x", innerWidth / 2)
+      .attr("y", innerHeight + 35)
+      .attr("text-anchor", "middle")
+      .style("font-size", "12px")
+      .style("fill", "#666")
+      .text("Proportion of restaurants by star rating");
+
+    // Bars
+    chartData.forEach(cityRow => {
+      let xOffset = 0;
+
+      cityRow.counts.forEach(({ star, count, pct }) => {
+        if (pct === 0) return;
+
+        g.append("rect")
+          .attr("x", x(xOffset))
+          .attr("y", y(cityRow.city))
+          .attr("width", 0)
+          .attr("height", y.bandwidth())
+          .attr("fill", colorScale(star))
+          .attr("rx", 2)
+          .on("pointerenter", (event) => {
+            tooltip.style.opacity = "1";
+            tooltip.innerHTML = `
+              <strong>${cityRow.city}</strong><br>
+              ⭐ ${star} star${star > 1 ? "s" : ""}<br>
+              Restaurants: ${count}<br>
+              Proportion: ${(pct * 100).toFixed(1)}%
+            `;
+          })
+          .on("pointermove", (event) => {
+            tooltip.style.left = event.clientX + 14 + "px";
+            tooltip.style.top = event.clientY - 28 + "px";
+          })
+          .on("pointerleave", () => {
+            tooltip.style.opacity = "0";
+          })
+          .transition()
+          .duration(600)
+          .delay(star * 80)
+          .attr("width", x(pct));
+
+        xOffset += pct;
+      });
     });
 
-  svg.call(brush);
+    // ----------------------------------
+    // 10. Legend
+    // ----------------------------------
+    const legend = svg.append("g")
+      .attr("transform", `translate(${margin.left}, ${margin.top + innerHeight + 45})`);
 
-  // Append to DOM
-  document.querySelector(selector).appendChild(container.node());
+    [1, 2, 3, 4, 5].forEach((star, i) => {
+      const legendItem = legend.append("g")
+        .attr("transform", `translate(${i * 120}, 0)`);
+
+      legendItem.append("rect")
+        .attr("width", 16)
+        .attr("height", 16)
+        .attr("rx", 3)
+        .attr("fill", colorScale(star));
+
+      legendItem.append("text")
+        .attr("x", 22)
+        .attr("y", 12)
+        .style("font-size", "12px")
+        .style("fill", "#444")
+        .text(`${star} star${star > 1 ? "s" : ""}`);
+    });
+  }
+
+  // Initial render
+  updateChart("All");
+
+  // ----------------------------------
+  // 11. Append to DOM
+  // ----------------------------------
+  const target = document.querySelector(selector);
+  target.innerHTML = "";
+  target.appendChild(wrapper);
 }
 
 
