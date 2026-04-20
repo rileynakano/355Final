@@ -55,13 +55,6 @@ async function initDashboard() {
 initDashboard();
 
 
-
-
-
-// -------------------------------
-// PEAK OF FOOD DELIVERY
-// -------------------------------
-
 function timeSeriesChart(time_series_worldwide, selector) {
   const data = time_series_worldwide;
   
@@ -521,10 +514,6 @@ function timeSeriesChart(time_series_worldwide, selector) {
 }
 
 
-// -------------------------------
-// WHEN DO YOU ORDER? 
-// -------------------------------
-
 function dayOfWeekChart(doordash_data, selector) {
 
   const data = doordash_data;
@@ -655,6 +644,7 @@ function dayOfWeekChart(doordash_data, selector) {
   // ⭐ Append chart to the HTML element
   document.querySelector(selector).appendChild(container.node());
 }
+
 
 function timeOfDayChart(doordash_data, selector) {
   const data = doordash_data;
@@ -941,11 +931,6 @@ function timeOfDayChart(doordash_data, selector) {
 }
 
 
-
-
-
-
-
 function starRatingChart(cleaned_full_data, selector) {
 
   const data = cleaned_full_data;
@@ -1208,162 +1193,244 @@ function starRatingChart(cleaned_full_data, selector) {
 }
 
 
-
-
-
-
 function sentimentChart(google_trends, selector) {
 
   const data = google_trends;
 
   const width = 1000;
-  const height = 600;
-  const margin = {top: 20, right: 20, bottom: 50, left: 60};
+  const height = 500;
+  const margin = { top: 40, right: 40, bottom: 50, left: 120 };
 
-  // Convert sentiment to numeric + label
+  // ----------------------------------
+  // 1. Process + summarize
+  // ----------------------------------
   const processed = data.map(d => {
     const s = +d.sentiment;
     return {
-      Apps: d.Apps,
-      sentimentNum: s,
-      sentimentLabel:
-        s === 1 ? "Positive" :
-        s === 0 ? "Neutral" :
-        "Negative"
+      app: d.Apps,
+      label: s === 1 ? "Positive" : s === 0 ? "Neutral" : "Negative"
     };
   });
 
-  // Count rows per (App, sentimentLabel)
-  const grouped = d3.rollups(
+  const summary = d3.rollups(
     processed,
-    v => v.length,
-    d => d.Apps,
-    d => d.sentimentLabel
-  );
+    v => ({
+      pos: v.filter(d => d.label === "Positive").length,
+      neg: v.filter(d => d.label === "Negative").length,
+      neu: v.filter(d => d.label === "Neutral").length,
+      total: v.length
+    }),
+    d => d.app
+  ).map(([app, d]) => ({
+    app,
+    pos: d.pos,
+    neg: d.neg,
+    neu: d.neu,
+    total: d.total,
+    net: (d.pos - d.neg) / d.total
+  }));
 
-  // Flatten
-  const rows = [];
-  for (const [app, sentiments] of grouped) {
-    for (const [label, count] of sentiments) {
-      rows.push({ Apps: app, sentimentLabel: label, sentimentCount: count });
-    }
-  }
+  // Sort by sentiment
+  summary.sort((a, b) => b.net - a.net);
 
-  // Unique apps
-  const apps = Array.from(new Set(rows.map(d => d.Apps)));
+  // ----------------------------------
+  // 2. Container
+  // ----------------------------------
+  const wrapper = document.createElement("div");
+  wrapper.style.width = "100%";
 
-  // Sentiment order
-  const sentiments = ["Negative", "Neutral", "Positive"];
+  const instruction = document.createElement("div");
+  instruction.style.marginBottom = "20px";
+  instruction.style.padding = "15px";
+  instruction.style.backgroundColor = "#FFF8E1";
+  instruction.style.borderLeft = "4px solid #FF6B35";
+  instruction.style.borderRadius = "4px";
+  instruction.innerHTML = `
+    <p style="margin:0; font-size:14px;">
+      Which platforms are viewed most positively? Bars show overall sentiment balance.
+    </p>
+  `;
+  wrapper.appendChild(instruction);
 
-  // Container
-  const container = d3.create("div")
-    .style("position", "relative");
+  const chartDiv = document.createElement("div");
+  wrapper.appendChild(chartDiv);
 
-  // Tooltip
-  const tooltip = container.append("div")
-    .style("position", "absolute")
-    .style("padding", "14px 18px")
-    .style("background", "white")
-    .style("border", "1px solid #ccc")
-    .style("border-radius", "6px")
-    .style("pointer-events", "none")
-    .style("font-size", "15px")
-    .style("width", "22vw")
-    .style("max-width", "320px")
-    .style("box-shadow", "0 4px 12px rgba(0,0,0,0.15)")
-    .style("opacity", 0);
+  // ----------------------------------
+  // 3. Tooltip
+  // ----------------------------------
+  const tooltip = document.createElement("div");
+  tooltip.style.position = "fixed";
+  tooltip.style.padding = "10px 14px";
+  tooltip.style.background = "white";
+  tooltip.style.border = "1px solid #ccc";
+  tooltip.style.borderRadius = "6px";
+  tooltip.style.pointerEvents = "none";
+  tooltip.style.fontSize = "13px";
+  tooltip.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+  tooltip.style.opacity = "0";
+  tooltip.style.transition = "opacity 0.2s ease";
+  document.body.appendChild(tooltip);
 
-  // SVG
-  const svg = container.append("svg")
+  // ----------------------------------
+  // 4. Scales
+  // ----------------------------------
+  const x = d3.scaleLinear()
+    .domain([-1, 1])
+    .range([margin.left, width - margin.right]);
+
+  const y = d3.scaleBand()
+    .domain(summary.map(d => d.app))
+    .range([margin.top, height - margin.bottom])
+    .padding(0.3);
+
+  // ----------------------------------
+  // 5. SVG
+  // ----------------------------------
+  const svg = d3.select(chartDiv)
+    .append("svg")
     .attr("width", width)
-    .attr("height", height)
-    .style("font", "10px sans-serif");
+    .attr("height", height);
 
-  // Scales
-  const x0 = d3.scaleBand()
-    .domain(apps)
-    .range([margin.left, width - margin.right])
-    .paddingInner(0.2);
+  // ----------------------------------
+  // 6. Gradient
+  // ----------------------------------
+  const defs = svg.append("defs");
 
-  const x1 = d3.scaleBand()
-    .domain(sentiments)
-    .range([0, x0.bandwidth()])
-    .padding(0.1);
+  const gradient = defs.append("linearGradient")
+    .attr("id", "barGradient")
+    .attr("x1", "0%")
+    .attr("x2", "100%");
 
-  const y = d3.scaleLinear()
-    .domain([0, d3.max(rows, d => d.sentimentCount)]).nice()
-    .range([height - margin.bottom, margin.top]);
+  gradient.append("stop")
+    .attr("offset", "0%")
+    .attr("stop-color", "#FFB74D");
 
-  const color = d3.scaleOrdinal()
-    .domain(sentiments)
-    .range(["#d62728", "#aaaaaa", "#2ca02c"]); // red, gray, green
+  gradient.append("stop")
+    .attr("offset", "100%")
+    .attr("stop-color", "#FF6B35");
 
-  // Axes
+  // ----------------------------------
+  // 7. Zero line (animated)
+  // ----------------------------------
+  svg.append("line")
+    .attr("x1", x(0))
+    .attr("x2", x(0))
+    .attr("y1", margin.top)
+    .attr("y2", margin.top)
+    .attr("stroke", "#999")
+    .attr("stroke-dasharray", "3,3")
+    .transition()
+    .duration(700)
+    .attr("y2", height - margin.bottom);
+
+  // ----------------------------------
+  // 8. Bars
+  // ----------------------------------
+  const bars = svg.selectAll("rect")
+    .data(summary)
+    .join("rect")
+      .attr("x", x(0))
+      .attr("y", d => y(d.app))
+      .attr("height", y.bandwidth())
+      .attr("width", 0)
+      .attr("fill", "url(#barGradient)")
+      .attr("rx", 4)
+      .on("pointerenter", function(event, d) {
+
+        // fade others
+        svg.selectAll("rect")
+          .transition().duration(150)
+          .attr("opacity", 0.3);
+
+        d3.select(this)
+          .transition().duration(150)
+          .attr("opacity", 1)
+          .attr("stroke", "#333")
+          .attr("stroke-width", 2);
+
+        tooltip.style.opacity = "1";
+        tooltip.innerHTML = `
+          <strong>${d.app}</strong><br>
+          👍 Positive: ${d.pos}<br>
+          😐 Neutral: ${d.neu}<br>
+          👎 Negative: ${d.neg}<br><br>
+          <strong>Net sentiment:</strong> ${(d.net * 100).toFixed(1)}%
+        `;
+      })
+      .on("pointermove", (event) => {
+        tooltip.style.left = event.clientX + 14 + "px";
+        tooltip.style.top = event.clientY - 28 + "px";
+      })
+      .on("pointerleave", function() {
+
+        svg.selectAll("rect")
+          .transition().duration(150)
+          .attr("opacity", 1)
+          .attr("stroke", "none");
+
+        tooltip.style.opacity = "0";
+      });
+
+  // Animate bars
+  bars.transition()
+    .duration(800)
+    .delay((d, i) => i * 120)
+    .ease(d3.easeCubicOut)
+    .attr("x", d => d.net < 0 ? x(d.net) : x(0))
+    .attr("width", d => Math.abs(x(d.net) - x(0)));
+
+  // ----------------------------------
+  // 9. Value labels
+  // ----------------------------------
+  const labels = svg.selectAll(".label")
+    .data(summary)
+    .join("text")
+      .attr("class", "label")
+      .attr("y", d => y(d.app) + y.bandwidth() / 2 + 4)
+      .attr("x", x(0))
+      .attr("opacity", 0)
+      .style("font-size", "12px")
+      .style("fill", "#444")
+      .style("text-anchor", d => d.net > 0 ? "start" : "end")
+      .text(d => `${(d.net * 100).toFixed(0)}%`);
+
+  labels.transition()
+    .delay((d, i) => i * 120 + 500)
+    .attr("x", d => d.net > 0 ? x(d.net) + 6 : x(d.net) - 6)
+    .attr("opacity", 1);
+
+  // ----------------------------------
+  // 10. Axes
+  // ----------------------------------
   svg.append("g")
     .attr("transform", `translate(0,${height - margin.bottom})`)
-    .call(d3.axisBottom(x0));
+    .call(d3.axisBottom(x).tickFormat(d3.format(".0%")))
+    .selectAll("text")
+    .style("font-size", "12px");
 
   svg.append("g")
     .attr("transform", `translate(${margin.left},0)`)
-    .call(d3.axisLeft(y));
+    .call(d3.axisLeft(y))
+    .selectAll("text")
+    .style("font-size", "13px")
+    .style("font-weight", "600");
 
+  // Axis label
   svg.append("text")
-    .attr("class", "axis-title axis-title-x")
     .attr("x", width / 2)
-    .attr("y", height - 5)
-    .text("Platform");
+    .attr("y", height - 10)
+    .attr("text-anchor", "middle")
+    .style("font-size", "12px")
+    .style("fill", "#666")
+    .text("Net sentiment (negative ← → positive)");
 
-  svg.append("text")
-    .attr("class", "axis-title axis-title-y")
-    .attr("transform", "rotate(-90)")
-    .attr("x", -height / 2)
-    .attr("y", 8)
-    .text("Sentiment Score");
-
-
-  // Bars
-  svg.append("g")
-    .selectAll("g")
-    .data(apps)
-    .join("g")
-      .attr("transform", d => `translate(${x0(d)},0)`)
-    .selectAll("rect")
-    .data(app => rows.filter(r => r.Apps === app))
-    .join("rect")
-      .attr("x", d => x1(d.sentimentLabel))
-      .attr("y", d => y(d.sentimentCount))
-      .attr("width", x1.bandwidth())
-      .attr("height", d => y(0) - y(d.sentimentCount))
-      .attr("fill", d => color(d.sentimentLabel))
-      .on("pointerenter", function(event, d) {
-        d3.select(this).attr("fill", "#1f77b4");
-
-        tooltip
-          .style("opacity", 1)
-          .html(`
-            <strong>App:</strong> ${d.Apps}<br>
-            <strong>Sentiment:</strong> ${d.sentimentLabel}<br>
-            <strong>Count:</strong> ${d.sentimentCount}
-          `);
-      })
-      .on("pointermove", function(event) {
-        const [xm, ym] = d3.pointer(event, container.node());
-        tooltip
-          .style("left", xm + 12 + "px")
-          .style("top", ym - 28 + "px");
-      })
-      .on("pointerleave", function(event, d) {
-        d3.select(this).attr("fill", color(d.sentimentLabel));
-        tooltip.style("opacity", 0);
-      });
-
-  // ⭐ Append to HTML
-  document.querySelector(selector).appendChild(container.node());
+  // ----------------------------------
+  // 11. Mount
+  // ----------------------------------
+  const target = document.querySelector(selector);
+  target.innerHTML = "";
+  target.appendChild(wrapper);
 }
-
-
-
-
 
 
 function totalOrdersChart(doordash_data, selector) {
@@ -1629,6 +1696,7 @@ function totalOrdersChart(doordash_data, selector) {
   target.innerHTML = "";
   target.appendChild(wrapper.node());
 }
+
 
 function canadaMapChart(cleaned_full_data, selector) {
 
