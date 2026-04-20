@@ -71,6 +71,7 @@
   align-items: center;
   gap: var(--space-md);
   text-align: center;
+  
 }
 
 .section-eyebrow {
@@ -87,6 +88,7 @@
   font-size: var(--text-section-title);
   line-height: var(--line-tight);
   color: var(--color-black);
+  padding-bottom: 30px;
 }
 
 .section-subtitle {
@@ -96,6 +98,7 @@
   line-height: var(--line-normal);
   color: var(--color-black);
   max-width: 900px;
+  font-weight: bold;
 }
 
 .section-container{
@@ -339,6 +342,7 @@
   font-size: 14px;
   color: #444;
   margin-bottom: 16px;
+  line-height: 1.55
 }
 
 .data-columns {

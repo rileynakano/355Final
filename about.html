@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>About | Delivered</title>
+
+    <link rel="stylesheet" href="globals.css" />
+    <link rel="stylesheet" href="styleguide.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="page">
+
+      <!-- Navigation -->
+      <nav class="site-nav" aria-label="Main navigation">
+        <div class="nav-container">
+          <a href="index.html" class="nav-link">Home</a>
+          <a href="about.html" class="nav-link is-active">About</a>
+          <a href="data.html" class="nav-link">The Data</a>
+        </div>
+      </nav>
+
+      <main class="story">
+
+        <!-- Hero -->
+        <section class="story-section section-intro">
+          <div class="intro-container">
+            <div class="hero-text">
+              <h1 class="hero-title">
+                The Story Behind the Visualizations
+              </h1>
+              <p class="section-subtitle" style="max-width:800px;">
+                A look at the motivation, design decisions, and challenges behind creating
+                this data‑driven exploration of food delivery.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- About Content -->
+        <section class="story-section section-container">
+
+          <!-- Section 1: Motivation -->
+          <div class="data-card">
+            <h2 class="section-title">Why We Chose This Topic</h2>
+            <p class="section-subtitle">
+              How a group of food‑obsessed students ended up exploring food delivery trends.
+            </p>
+
+            <p>
+              Everyone in our group loves food — cooking it, trying new restaurants, and following
+              whatever the internet is obsessed with that week. Our original idea was to explore
+              viral food trends, like the rise of matcha or the sudden popularity of TikTok recipes.
+              We wanted to understand when these trends exploded, how big they became, and which
+              platforms drove their popularity.
+            </p>
+
+            <p>
+              But after searching extensively, we couldn’t find datasets that captured viral food
+              trends in a usable or consistent way. So we pivoted. Instead of looking at what people
+              talk about, we shifted to what people actually do: ordering food. Food delivery is
+              something almost everyone interacts with, and it reflects real behavior rather than hype.
+              That pivot led us to explore the landscape of food delivery in Canada — how often people
+              order, what they order, and how they feel about the platforms they use.
+            </p>
+          </div>
+
+          <!-- Section 2: Problem -->
+          <div class="data-card">
+            <h2 class="section-title">What Problem This Project Addresses</h2>
+            <p class="section-subtitle">
+              Helping people understand the food delivery landscape they use every day.
+            </p>
+
+            <p>
+              Food delivery apps are deeply woven into everyday life, especially in Canada. Many
+              people order food regularly, but very few actually know what the broader food delivery
+              landscape looks like. How often do people order? Which cuisines dominate different
+              cities? How do platforms compare in sentiment and popularity?
+            </p>
+
+            <p>
+              Our goal was to create a website that informs people about these patterns in a way that’s
+              both engaging and easy to explore. We wanted the experience to feel fun, surprising, and
+              interactive — something that sparks curiosity rather than just presenting numbers.
+            </p>
+          </div>
+
+          <!-- Section 3: Audience -->
+          <div class="data-card">
+            <h2 class="section-title">Who This Project Is For</h2>
+            <p class="section-subtitle">
+              Designed for people who use food delivery apps — occasionally or often.
+            </p>
+
+            <p>
+              Our primary audience is adults who order food through delivery apps, whether occasionally
+              or multiple times a week. These users already have firsthand experience with the platforms,
+              so the insights we present are immediately relatable.
+            </p>
+
+            <p>
+              Because the visualizations focus on real behaviors — ordering patterns, cuisine preferences,
+              platform sentiment — the content feels familiar and relevant. The interactive elements also
+              make the experience more engaging for people who are curious about how their own habits
+              compare to broader trends.
+            </p>
+          </div>
+
+          <!-- Section 4: Limitations & Learnings -->
+          <div class="data-card">
+            <h2 class="section-title">Limitations and What We Learned</h2>
+            <p class="section-subtitle">
+              Challenges we faced and the insights we gained along the way.
+            </p>
+
+            <p>
+              This project came with a number of unexpected challenges — some technical, some logistical,
+              and some simply related to timing. One of the biggest hurdles had nothing to do with data or
+              code at all: it was time. The most demanding week of this project overlapped with major final
+              assignments in our other courses, including a client‑based project that all three of us were
+              involved in. We knew what needed to get done, but there were only so many hours in the day.
+            </p>
+
+            <p>
+              Finding the right datasets was another major obstacle. At the beginning, most of the free and
+              accessible datasets we found were based in Asia, which didn’t align with our goal of exploring
+              food delivery in Canada. After extensive searching, we eventually found datasets that were not
+              only relevant but also geographically centered in North America. No single dataset contained
+              everything we needed, so we combined several sources to build a more complete picture.
+            </p>
+
+            <p>
+              Once we had the data, we ran into GitHub’s 100MB file size limit. Our combined datasets exceeded
+              that limit, which meant we couldn’t push or pull them normally. To solve this, we implemented
+              Git LFS (Large File Storage), which stores large files on a remote server while keeping lightweight
+              pointers in the repository. This allowed us to keep everything in one place, but it introduced new
+              complications: frequent conflicts, re‑tracking issues, and the need for constant coordination
+              between team members.
+            </p>
+
+            <p>
+              On the technical side, converting Observable notebooks into standalone JavaScript was another
+              significant challenge. Observable’s structure is powerful, but it didn’t match the design or layout
+              we envisioned for our website. Rebuilding the visualizations in plain JavaScript required rethinking
+              how data flowed through each chart and recreating interactions from scratch.
+            </p>
+
+            <p>
+              Despite all these challenges, the project taught us a tremendous amount — not just about food
+              delivery, but about data storytelling, visualization design, collaboration, and problem‑solving.
+              We learned how to adapt when things didn’t go as planned, how to work with imperfect real‑world
+              data, and how to transform raw information into an engaging narrative experience.
+            </p>
+          </div>
+
+        </section>
+
+      </main>
+    </div>
+  </body>
+</html>
