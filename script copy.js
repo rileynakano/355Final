@@ -34,15 +34,15 @@ async function initDashboard() {
       time_series_worldwide
     } = await fetchData();
 
-    // -------------------------------
-    // 3. Call each chart function
-    // -------------------------------
+// -------------------------------
+// 3. Call each chart function
+// -------------------------------
     timeSeriesChart(time_series_worldwide, "#vis_1");
     timeOfDayChart(doordash_data, "#vis_2b");
     scatterSelection(cleaned_full_data, "#vis_3");
     sentimentChart(google_trends, "#vis_4");
     totalOrdersChart(doordash_data, "#vis_5");
-    stackedCityChart(cleaned_full_data, "#vis_6");
+    canadaMapChart(cleaned_full_data, "#vis_6");
 
   } catch (err) {
     console.error("Error loading dashboard:", err);
@@ -58,7 +58,9 @@ initDashboard();
 
 
 
-
+// -------------------------------
+// PEAK OF FOOD DELIVERY
+// -------------------------------
 
 function timeSeriesChart(time_series_worldwide, selector) {
   const data = time_series_worldwide;
@@ -519,9 +521,9 @@ function timeSeriesChart(time_series_worldwide, selector) {
 }
 
 
-
-
-
+// -------------------------------
+// WHEN DO YOU ORDER? 
+// -------------------------------
 
 function dayOfWeekChart(doordash_data, selector) {
 
@@ -653,11 +655,6 @@ function dayOfWeekChart(doordash_data, selector) {
   // ⭐ Append chart to the HTML element
   document.querySelector(selector).appendChild(container.node());
 }
-
-
-
-
-
 
 function timeOfDayChart(doordash_data, selector) {
   const data = doordash_data;
@@ -1566,249 +1563,223 @@ function totalOrdersChart(doordash_data, selector) {
   target.appendChild(wrapper.node());
 }
 
-
-
-function stackedCityChart(cleaned_full_data, selector) {
+function canadaMapChart(cleaned_full_data, selector) {
 
   const width = 800;
-  const height = 350;
-  const margin = {top: 20, right: 20, bottom: 60, left: 70};
+  const height = 450;
 
-  // --- RAW DATA ---
-  const raw = cleaned_full_data;
+  // -------------------------------------------------
+  // 1. City coordinates
+  // -------------------------------------------------
+  const cityCoords = {
+    Toronto:      { lat: 43.6532, lon: -79.3832 },
+    Vancouver:    { lat: 49.2827, lon: -123.1207 },
+    Montreal:     { lat: 45.5019, lon: -73.5674 },
+    Calgary:      { lat: 51.0447, lon: -114.0719 },
+    Edmonton:     { lat: 53.5461, lon: -113.4938 },
+    Ottawa:       { lat: 45.4215, lon: -75.6972 },
+    Winnipeg:     { lat: 49.8951, lon: -97.1384 },
+    Hamilton:     { lat: 43.2557, lon: -79.8711 },
+    Mississauga:  { lat: 43.5890, lon: -79.6441 },
+    Brampton:     { lat: 43.7315, lon: -79.7624 }
+  };
 
-  // --- ALLOWED CATEGORIES ---
-  const allowedCategories = new Set([
-    "Chinese",
-    "Japanese",
-    "Italian",
-    "Burgers",
-    "India",
-    "Mexican",
-    "Pizza",
-    "American"
-  ]);
-
-  // --- COUNT ORDERS PER (CITY, CATEGORY) ---
-  const grouped = d3.rollups(
-    raw,
-    v => v.length,
-    d => d.city,
-    d => d.category_1
+  // -------------------------------------------------
+  // 2. Aggregate dataset by city
+  // -------------------------------------------------
+  const cityRollup = d3.rollups(
+    cleaned_full_data,
+    v => ({
+      total: v.length,
+      categories: d3.rollups(
+        v,
+        vv => vv.length,
+        d => d.category_1
+      )
+    }),
+    d => d.city
   );
 
-  // Extract city list
-  const cities = Array.from(grouped, ([city]) => city);
+  const cities = cityRollup
+    .filter(([city]) => cityCoords[city])
+    .map(([city, stats]) => ({
+      city,
+      lat: cityCoords[city].lat,
+      lon: cityCoords[city].lon,
+      total: stats.total,
+      categories: stats.categories.map(([category, count]) => ({
+        category,
+        count
+      }))
+    }));
 
-  // Extract only allowed categories
-  let categories = Array.from(
-    new Set(raw.map(d => d.category_1))
-  ).filter(cat => allowedCategories.has(cat));
+  // -------------------------------------------------
+  // 3. Scales
+  // -------------------------------------------------
+  const radiusScale = d3.scaleSqrt()
+    .domain([0, d3.max(cities, d => d.total)])
+    .range([6, 24]);
 
-  // --- BUILD STACK-FRIENDLY ROWS ---
-  let rows = cities.map((city, i) => {
-    const entry = { city, index: i };
-    const catMap = new Map(grouped.find(d => d[0] === city)[1]);
-
-    categories.forEach(cat => {
-      entry[cat] = catMap.get(cat) ?? 0;
-    });
-
-    return entry;
-  });
-
-  // --- SORT CATEGORIES BY TOTAL ORDER VOLUME ---
-  const categoryTotals = categories.map(cat => ({
-    cat,
-    total: d3.sum(rows, d => d[cat])
-  }));
-
-  categoryTotals.sort((a, b) => b.total - a.total);
-
-  const sortedCategories = categoryTotals.map(d => d.cat);
-
-  // --- STACK GENERATOR ---
-  const stack = d3.stack()
-    .keys(sortedCategories)
-    .order(d3.stackOrderNone)
-    .offset(d3.stackOffsetNone);
-
-  const series = stack(rows);
-
-  // --- CONTAINER ---
+  // -------------------------------------------------
+  // 4. Container & SVG (card-style)
+  // -------------------------------------------------
   const container = d3.create("div")
     .style("position", "relative")
-    .style("width", width + "px")
-    .style("overflow", "hidden");
+    .style("width", "100%")
+    .style("background", "#ffffff")
+    .style("border-radius", "18px")
+    .style("padding", "18px")
+    .style("box-shadow", "0 24px 55px rgba(0, 0, 0, 0.08)");
 
-  // --- TOOLTIP ---
+  const svg = container.append("svg")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("preserveAspectRatio", "xMidYMid meet")
+    .style("width", "100%")
+    .style("display", "block");
+
+  // -------------------------------------------------
+  // 5. Tooltip
+  // -------------------------------------------------
   const tooltip = container.append("div")
     .style("position", "absolute")
-    .style("padding", "14px 18px")
+    .style("padding", "10px 14px")
     .style("background", "white")
     .style("border", "1px solid #ccc")
     .style("border-radius", "6px")
     .style("pointer-events", "none")
-    .style("font-size", "15px")
-    .style("width", "22vw")
-    .style("max-width", "320px")
+    .style("font-size", "14px")
     .style("box-shadow", "0 4px 12px rgba(0,0,0,0.15)")
     .style("opacity", 0);
 
-  // --- SVG ---
-  const svg = container.append("svg")
-    .attr("width", width)
-    .attr("height", height)
-    .style("font", "10px sans-serif");
+  // -------------------------------------------------
+  // ✅ Step 4: Detail card + selection state
+  // -------------------------------------------------
+  let selectedCity = null;
 
-  // --- SCALES ---
-  const x = d3.scaleLinear()
-    .domain([0, cities.length])
-    .range([margin.left, width - margin.right]);
+  const detailCard = container.append("div")
+    .style("margin-top", "18px")
+    .style("padding", "16px")
+    .style("background", "#FFF8E1")
+    .style("border-left", "4px solid #FF6B35")
+    .style("border-radius", "8px")
+    .style("font-size", "14px")
+    .style("line-height", "1.6")
+    .style("display", "none");
 
-  const y = d3.scaleLinear()
-    .domain([0, d3.max(rows, d => d3.sum(sortedCategories, c => d[c]))]).nice()
-    .range([height - margin.bottom, margin.top]);
+  // -------------------------------------------------
+  // 6. Projection & path
+  // -------------------------------------------------
+  const projection = d3.geoMercator()
+    .center([-96, 62])
+    .scale(500)
+    .translate([width / 2, height / 2 - 100]);
 
-  const color = d3.scaleOrdinal()
-    .domain(sortedCategories)
-    .range(d3.schemeTableau10);
+  const path = d3.geoPath().projection(projection);
 
-  // --- LEGEND ---
-  const legend = container.append("div")
-    .style("display", "flex")
-    .style("flex-wrap", "wrap")
-    .style("gap", "10px")
-    .style("margin", "10px 0 0 10px")
-    .style("font-size", "12px");
+  // -------------------------------------------------
+  // 7. Load and draw map + city markers
+  // -------------------------------------------------
+  d3.json("./assets/geo/ne_50m_admin_0_countries.geojson")
+    .then(geo => {
 
-  sortedCategories.forEach(cat => {
-    const item = legend.append("div")
-      .style("display", "flex")
-      .style("align-items", "center")
-      .style("gap", "6px");
-
-    item.append("div")
-      .style("width", "14px")
-      .style("height", "14px")
-      .style("background", color(cat))
-      .style("border", "1px solid #999")
-      .style("border-radius", "2px");
-
-    item.append("span").text(cat);
-  });
-
-  // --- AXES ---
-  const xAxisG = svg.append("g")
-    .attr("transform", `translate(0,${height - margin.bottom})`)
-    .call(
-      d3.axisBottom(x)
-        .ticks(cities.length)
-        .tickFormat(i => cities[i] ?? "")
-    )
-    .selectAll("text")
-      .attr("transform", "rotate(-35)")
-      .style("text-anchor", "end");
-
-  const yAxisG = svg.append("g")
-    .attr("transform", `translate(${margin.left},0)`)
-    .call(d3.axisLeft(y));
-
-  svg.append("text")
-    .attr("class", "axis-title axis-title-x")
-    .attr("x", width / 2)
-    .attr("y", height - 5)
-    .text("City");
-
-  svg.append("text")
-    .attr("class", "axis-title axis-title-y")
-    .attr("transform", "rotate(-90)")
-    .attr("x", -height / 2)
-    .attr("y", 15)
-    .text("Number of Restaurants");
-
-
-  // --- CLIP PATH ---
-  svg.append("defs").append("clipPath")
-    .attr("id", "clip-bars")
-    .append("rect")
-      .attr("x", margin.left)
-      .attr("y", margin.top)
-      .attr("width", width - margin.left - margin.right)
-      .attr("height", height - margin.top - margin.bottom);
-
-  // --- BAR LAYER ---
-  const barLayer = svg.append("g")
-    .attr("clip-path", "url(#clip-bars)");
-
-  // --- DRAW STACKED BARS ---
-  const groups = barLayer.selectAll("g.layer")
-    .data(series)
-    .join("g")
-      .attr("class", "layer")
-      .attr("fill", d => color(d.key));
-
-  const rects = groups.selectAll("rect")
-    .data(d => d)
-    .join("rect")
-      .attr("x", d => x(d.data.index))
-      .attr("y", d => y(d[1]))
-      .attr("width", (x(1) - x(0)) * 0.9)
-      .attr("height", d => y(d[0]) - y(d[1]))
-      .on("pointerenter", function(event, d) {
-        const hoveredCategory = this.parentNode.__data__.key;
-        const city = d.data.city;
-        const value = d.data[hoveredCategory];
-
-        groups.attr("opacity", g => (g.key === hoveredCategory ? 1 : 0.15));
-
-        d3.select(this).attr("opacity", 1);
-
-        tooltip
-          .style("opacity", 1)
-          .html(`
-            <strong>City:</strong> ${city}<br>
-            <strong>Category:</strong> ${hoveredCategory}<br>
-            <strong>Orders:</strong> ${value}
-          `);
-      })
-      .on("pointermove", function(event) {
-        const [xm, ym] = d3.pointer(event, container.node());
-        tooltip
-          .style("left", xm + 12 + "px")
-          .style("top", ym - 28 + "px");
-      })
-      .on("pointerleave", function() {
-        groups.attr("opacity", 1);
-        tooltip.style("opacity", 0);
-      });
-
-  // --- ZOOM + PAN ---
-  const zoom = d3.zoom()
-    .scaleExtent([1, 20])
-    .translateExtent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
-    .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
-    .on("zoom", event => {
-      const zx = event.transform.rescaleX(x);
-      const zy = event.transform.rescaleY(y);
-
-      rects
-        .attr("x", d => zx(d.data.index))
-        .attr("width", (zx(1) - zx(0)) * 0.9)
-        .attr("y", d => zy(d[1]))
-        .attr("height", d => zy(d[0]) - zy(d[1]));
-
-      xAxisG.call(
-        d3.axisBottom(zx)
-          .ticks(cities.length)
-          .tickFormat(i => cities[Math.round(i)] ?? "")
+      const canada = geo.features.find(
+        d => d.properties.ADMIN === "Canada"
       );
 
-      yAxisG.call(d3.axisLeft(zy));
+      svg.append("path")
+        .datum(canada)
+        .attr("d", path)
+        .attr("fill", "#F5F5F5")
+        .attr("stroke", "#999")
+        .attr("stroke-width", 1.2);
+
+      const cityCircles = svg.append("g")
+        .selectAll("circle")
+        .data(cities, d => d.city)
+        .join("circle")
+          .attr("cx", d => projection([d.lon, d.lat])[0])
+          .attr("cy", d => projection([d.lon, d.lat])[1])
+          .attr("r", d => radiusScale(d.total))
+          .attr("fill", "#FF6B35")
+          .attr("stroke", "#ffffff")
+          .attr("stroke-width", 2)
+          .style("opacity", 0.9)
+          .style("cursor", "pointer")
+
+          .on("pointerenter", (event, d) => {
+            tooltip
+              .style("opacity", 1)
+              .html(`
+                <strong>${d.city}</strong><br>
+                Total restaurants: ${d.total.toLocaleString()}
+              `);
+          })
+
+          .on("pointermove", event => {
+            const [x, y] = d3.pointer(event, container.node());
+            tooltip
+              .style("left", `${x + 12}px`)
+              .style("top", `${y - 28}px`);
+          })
+
+          .on("pointerleave", () => {
+            tooltip.style("opacity", 0);
+          })
+
+          .on("click", (event, d) => {
+            selectedCity = d;
+            updateHighlight();
+            updateDetailCard();
+          });
+
+      function updateHighlight() {
+        cityCircles
+          .attr("stroke", d =>
+            selectedCity && d.city === selectedCity.city
+              ? "#000"
+              : "#ffffff"
+          )
+          .attr("stroke-width", d =>
+            selectedCity && d.city === selectedCity.city
+              ? 3.5
+              : 2
+          );
+      }
+
+      function updateDetailCard() {
+        if (!selectedCity) return;
+
+        const topCategories = selectedCity.categories
+          .slice()
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+
+        detailCard
+          .style("display", "block")
+          .html(`
+            <strong style="font-size:16px; color:#BF360C;">
+              ${selectedCity.city}
+            </strong><br>
+            <strong>Total restaurants:</strong>
+            ${selectedCity.total.toLocaleString()}
+            <br><br>
+            <strong>Top cuisines:</strong>
+            <ul style="margin:8px 0 0 16px;">
+              ${topCategories.map(d =>
+                `<li>${d.category}: ${d.count.toLocaleString()}</li>`
+              ).join("")}
+            </ul>
+          `);
+      }
+    })
+    .catch(err => {
+      console.error("Failed to load Canada map:", err);
     });
 
-  svg.call(zoom);
-
-  // ⭐ Append to HTML
-  document.querySelector(selector).appendChild(container.node());
-  }
+  // -------------------------------------------------
+  // 8. Append to DOM
+  // -------------------------------------------------
+  const target = document.querySelector(selector);
+  target.innerHTML = "";
+  target.appendChild(container.node());
+}
