@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Data | Delivered</title>
+
+    <link rel="stylesheet" href="globals.css" />
+    <link rel="stylesheet" href="styleguide.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="page">
+
+      <!-- Navigation -->
+      <nav class="site-nav" aria-label="Main navigation">
+        <div class="nav-container">
+          <a href="index.html" class="nav-link">Home</a>
+          <a href="about.html" class="nav-link">About</a>
+          <a href="data.html" class="nav-link is-active">The Data</a>
+        </div>
+      </nav>
+
+      <main class="story">
+
+         <!-- Hero -->
+        <section class="story-section section-intro">
+          <div class="intro-container">
+            <div class="hero-text">
+              <h1 class="hero-title">
+                Behind the Visualizations: The Data That Powers This Story
+              </h1>
+              <p class="section-subtitle" style="max-width:800px;">
+                This project combines multiple datasets to explore how food delivery has grown,
+                what people order, and how they feel about it.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Dataset Section -->
+        <section class="story-section section-container">
+
+          <!-- Dataset 1 -->
+          <div class="data-card">
+            <h2 class="section-title">Restaurant and Ratings Data</h2>
+            <p></p>
+            <p class="section-subtitle">
+              Source:
+              <a href="https://www.kaggle.com/datasets/ahmedshahriarsakib/uber-eats-usa-restaurants-menus" target="_blank">
+                Uber Eats USA Restaurants (Kaggle)
+              </a>
+            </p>
+
+            <p>
+              This dataset contains restaurant-level information including ratings, categories,
+              pricing, and locations. It was used to analyze how restaurants differ across cities
+              and cuisines.
+            </p>
+
+            <div class="data-columns">
+              <div>
+                <h4>Key Fields</h4>
+                <ul>
+                  <li>name, category, price_range</li>
+                  <li>score, ratings</li>
+                  <li>city, location (lat/lng)</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4>Used For</h4>
+                <ul>
+                  <li>Geography visualization</li>
+                  <li>Cuisine comparisons</li>
+                  <li>Restaurant distribution insights</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dataset 2 -->
+          <div class="data-card">
+            <h2 class="section-title">DoorDash Orders Dataset</h2>
+            <p></p>
+            <p class="section-subtitle">
+              Source:
+              <a href="https://www.kaggle.com/datasets/jessicarippman/doordash-dataset/data" target="_blank">
+                DoorDash Dataset (Kaggle)
+              </a>
+            </p>
+
+            <p>
+              This dataset captures operational data such as order timing, delivery duration,
+              and platform activity. It helps reveal when and how people use food delivery.
+            </p>
+
+            <div class="data-columns">
+              <div>
+                <h4>Key Fields</h4>
+                <ul>
+                  <li>created_at, delivery time</li>
+                  <li>total_items, subtotal</li>
+                  <li>dashers & order volume</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4>Used For</h4>
+                <ul>
+                  <li>Time-of-day ordering trends</li>
+                  <li>Weekly usage patterns</li>
+                  <li>Demand vs supply insights</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dataset 3 -->
+          <div class="data-card">
+            <h2 class="section-title">Google Trends and Sentiment Data</h2>
+            <p></p>
+            <p class="section-subtitle">
+              Sources:
+              <a href="https://trends.google.com/explore?q=/g/1224tf85,/g/11ckq_1t0s,/g/11b7xlbf4l,/m/03hc1f9&date=2014-01-01%202025-12-31&geo=Worldwide" target="_blank">
+                Google Trends
+              </a>
+            </p>
+
+            <p>
+              Combines search interest data with sentiment analysis scores to understand
+              both popularity and public opinion of food delivery platforms.
+            </p>
+
+            <div class="data-columns">
+              <div>
+                <h4>Key Fields</h4>
+                <ul>
+                  <li>search interest over time</li>
+                  <li>sentiment (positive/neutral/negative)</li>
+                  <li>VADER & AFINN scores</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4>Used For</h4>
+                <ul>
+                  <li>Trend growth visualization</li>
+                  <li>Platform sentiment comparison</li>
+                  <li>Public perception analysis</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dataset 4 -->
+          <div class="data-card">
+            <h2 class="section-title">Canadian DoorDash Dataset</h2>
+            <p></p>
+            <p class="section-subtitle">
+              Source:
+              <a href="https://www.kaggle.com/datasets/satoshiss/food-delivery-in-canada-door-dash" target="_blank">
+                Food Delivery in Canada (Kaggle)
+              </a>
+            </p>
+
+            <p>
+              Focused on Canadian cities, this dataset was used to explore regional differences
+              in cuisine preferences and ordering behavior.
+            </p>
+
+            <div class="data-columns">
+              <div>
+                <h4>Key Fields</h4>
+                <ul>
+                  <li>city, restaurant category</li>
+                  <li>ratings and pricing</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4>Used For</h4>
+                <ul>
+                  <li>Canada-focused map visualization</li>
+                  <li>Cuisine popularity by city</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dataset 5 -->
+          <div class="data-card">
+            <h2 class="section-title">Cleaned Combined Dataset</h2>
+            <p></p>
+            <p class="section-subtitle">
+                Source:
+              <a href="https://data.mendeley.com/datasets/m5jk7wzyg7/1" target="_blank">
+                Food Delivery Apps (Mendeley)
+              </a>
+            </p>
+
+            <p>
+              A cleaned and merged dataset combining multiple sources. This dataset standardizes
+              fields like city, category, and ratings for consistent analysis across visualizations.
+            </p>
+
+            <div class="data-columns">
+              <div>
+                <h4>Key Fields</h4>
+                <ul>
+                  <li>restaurant, city, category</li>
+                  <li>star ratings, price range</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4>Used For</h4>
+                <ul>
+                  <li>Star rating visualization</li>
+                  <li>Cross-dataset comparisons</li>
+                  <li>Final unified analysis</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+      </main>
+    </div>
+  </body>
+</html>
